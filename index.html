@@ -532,13 +532,13 @@
     /* CSS contact shadow — supporting layer under pile; fades in as bag lands */
     .bag-contact-shadow {
       position: absolute;
-      right: clamp(170px, 22vw, 390px);
+      right: clamp(230px, 30vw, 500px);
       bottom: clamp(160px, 32vh, 320px);
-      width: clamp(200px, 20vw, 340px);
-      height: clamp(36px, 4.5vw, 72px);
+      width: clamp(120px, 11vw, 190px);
+      height: clamp(20px, 2.2vw, 38px);
       border-radius: 999px;
-      background: rgba(0,0,0,0.55);
-      filter: blur(12px);
+      background: rgba(0,0,0,0.52);
+      filter: blur(9px);
       opacity: 0;
       transform: scale(0.65);
       z-index: 4;
@@ -1679,13 +1679,7 @@ function setupScrollAnimations() {
     ease: 'power2.out', duration: FALL.phase3Duration,
   }, phase3Start);
 
-  /* Crossfade: final 4.5% only — bags are already aligned, so this is very short.
-     Any longer creates visible ghosting; any shorter creates a pop. */
-  fallTL.to(state, {
-    crossfade: 1,
-    ease: 'none',
-    duration: 0.045,
-  }, 0.955);
+  /* No crossfade — landedBag removed; mainBag stays visible after landing. */
 }
 
 /* ── Render loop (canvas 1 + canvas 2 in one RAF) ── */
@@ -1696,13 +1690,10 @@ function loopBoth() {
   const t  = clock.getElapsedTime();
   const cf = THREE.MathUtils.clamp(state.crossfade, 0, 1);
 
-  /* ── Canvas 1: hero bag — stays fully opaque during entire fall.
-     Hidden instantly only after crossfade completes (cf ≥ 0.995). */
-  mainBag.visible = cf < 0.995;
-  if (mainBag.visible) {
-    setObjectOpacity(mainBag, 1);
-    if (state.basementBlend > 0) applyHeroBasementBlend(mainBag, state.basementBlend);
-  }
+  /* ── Canvas 1: hero bag — always visible; lands and stays on the pile. */
+  mainBag.visible = true;
+  setObjectOpacity(mainBag, 1);
+  if (state.basementBlend > 0) applyHeroBasementBlend(mainBag, state.basementBlend);
 
   /* Animate canvas-1 hero bag */
   mainBag.position.set(
