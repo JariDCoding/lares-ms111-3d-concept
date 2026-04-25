@@ -529,19 +529,19 @@
       pointer-events: none;
     }
 
-    /* CSS contact shadow — fades in as bag pile lands */
+    /* CSS contact shadow — supporting layer under pile; fades in as bag lands */
     .bag-contact-shadow {
       position: absolute;
-      right: clamp(40px, 8vw, 160px);
-      bottom: clamp(60px, 10vh, 140px);
-      width: clamp(220px, 22vw, 420px);
-      height: clamp(44px, 5.5vw, 110px);
+      right: clamp(180px, 24vw, 420px);
+      bottom: clamp(70px, 11vh, 150px);
+      width: clamp(150px, 15vw, 260px);
+      height: clamp(28px, 3.5vw, 60px);
       border-radius: 999px;
-      background: rgba(0,0,0,0.30);
-      filter: blur(28px);
+      background: rgba(0,0,0,0.42);
+      filter: blur(20px);
       opacity: 0;
-      transform: scale(0.5);
-      z-index: 4; /* above #basement-canvas (z:3) */
+      transform: scale(0.65);
+      z-index: 4;
       pointer-events: none;
       transition: none;
     }
@@ -957,8 +957,10 @@ gsap.registerPlugin(ScrollTrigger);
    USE_3D_BASEMENT  set false to swap canvas 2 for a PNG fallback.
 ════════════════════════════════════════════════════════════════ */
 
-const USE_3D_BASEMENT = true; /* false → show #basement-pile-fallback img instead */
-const DEBUG_BASEMENT  = false; /* true → AxesHelper + GridHelper in canvas 2 */
+const USE_3D_BASEMENT      = true;   /* false → show #basement-pile-fallback img */
+const DEBUG_BASEMENT       = false;  /* true → AxesHelper + GridHelper in canvas 2 */
+const DEBUG_ALIGNMENT      = false;  /* true → log screen-space coords at transition */
+const LANDING_SCALE_CORRECTION = 0.92; /* manual multiplier; tune 0.75–1.05 if size jumps */
 
 /* Canvas 1: hero bag starting pose after GLB auto-centering */
 const HERO_BAG = {
@@ -968,44 +970,44 @@ const HERO_BAG = {
 };
 
 /* Canvas 1: 3-phase fall — phase durations must sum to 1.0
-   Phase 1 = tip forward.  Phase 2 = gravity drop.  Phase 3 = floor approach/settle. */
+   midPos is AUTO-COMPUTED by computeFallMidPoint() after landing is known; values
+   below are only defaults used before that function runs. */
 const FALL = {
-  phase1Duration: 0.28,
-  phase2Duration: 0.44,
+  phase1Duration: 0.26,
+  phase2Duration: 0.46,
   phase3Duration: 0.28,
 
-  phase1Rot: { x: -0.82, y: -0.55, z:  0.08 }, /* tip forward, no violent spin */
-  midPos:    { x:  1.20, y: -0.20, z:  0.08 }, /* mid-air — moves toward landing X */
-  midRot:    { x: -1.28, y: -0.44, z:  0.14 }, /* nearly flat by mid-fall */
-  midScale:  0.76,
+  phase1Rot: { x: -0.78, y: -0.52, z:  0.06 }, /* tip forward, slight lean */
+  midPos:    { x:  1.20, y: -0.18, z:  0.06 }, /* overwritten by computeFallMidPoint() */
+  midRot:    { x: -1.25, y: -0.42, z:  0.13 }, /* nearly flat */
+  midScale:  0.74,
 
   ease1: 'power1.in',
-  ease2: 'power1.inOut',  /* constant gravity feel, no mid-air hang */
+  ease2: 'power1.inOut',  /* constant gravity — no mid-air hang */
   ease3: 'power2.out',
 
   scrollStart: 'top bottom',
   scrollEnd:   'center center',
-  scrub:       1.6,
+  scrub:       1.5,
 };
 
-/* Canvas 1: final landing pose — x/y/scaleRatio are AUTO-COMPUTED in
-   computeLandingFromPile() at load time so they match PILE.landed's screen
-   position in canvas 2.  Values below are fallbacks only. */
+/* Canvas 1: final landing pose — position.x/y + scaleRatio are AUTO-COMPUTED.
+   rotation MUST match PILE.landed.rotation so the swap is rotation-seamless. */
 const LANDING = {
   position:   { x: 1.05, y: -0.80, z:  0.10 },
-  rotation:   { x: -1.35, y: -0.42, z:  0.18 },
-  scaleRatio: 0.58,
+  rotation:   { x: -1.38, y: -0.38, z:  0.12 }, /* identical to PILE.landed.rotation */
+  scaleRatio: 0.50,
 };
 
-/* Canvas 2: camera — low eye-level (0.9 m), moderate distance (3.8 m back).
-   lookAt points toward the foreground floor where the bags sit.
-   Tune: lower position.y → floor steeper in frame; increase fov → wider view. */
+/* Canvas 2: camera — eye-level ~0.95 m, 4.4 m back.
+   lookAt toward foreground floor (z 1.25) so bags appear lower in frame.
+   Tune: lower position.y → steeper floor angle; lower fov → tighter FOV. */
 const BASEMENT_CAMERA = {
-  fov:      50,
+  fov:      48,
   near:     0.01,
   far:      100,
-  position: { x: 0.1, y: 0.9, z: 3.8 },
-  lookAt:   { x: 0.7, y: -0.1, z: 0.7 },
+  position: { x: 0.0,  y: 0.95, z: 4.4 },
+  lookAt:   { x: 0.55, y: -0.18, z: 1.25 },
 };
 
 /* Canvas 2: invisible floor plane (reference only, never rendered) */
@@ -1015,46 +1017,46 @@ const BASEMENT_FLOOR = {
 };
 
 /* Canvas 2: bag positions in scene 2 world space.
-   High Z = closer to camera = lower + bigger in frame (foreground floor).
-   groundObjectOnFloor() corrects Y after scale+rotation are set.
-   TUNE ORDER: landed first → match canvas-1 swap; then bag1/bag2 around it. */
+   High Z = closer to camera = lower + larger in frame (foreground floor).
+   groundObjectOnFloor() corrects Y after scale+rotation are applied.
+   TUNE ORDER: landed first (must match hero bag crossfade), then bag1/bag2. */
 const PILE = {
   bag1: {
-    position: { x:  0.65, y: 0, z:  1.10 },
-    rotation: { x: -1.54, y: -0.38, z:  0.20 },
-    scale:    0.82,
+    position: { x:  0.35, y: 0, z:  1.85 },
+    rotation: { x: -1.54, y: -0.30, z:  0.10 },
+    scale:    0.46,
   },
   bag2: {
-    position: { x:  1.10, y: 0, z:  0.90 },
-    rotation: { x: -1.50, y:  0.58, z: -0.10 },
-    scale:    0.78,
+    position: { x:  0.78, y: 0, z:  1.68 },
+    rotation: { x: -1.50, y:  0.50, z: -0.12 },
+    scale:    0.43,
   },
   landed: {
-    /* This is where the hero bag appears after landing.
-       computeLandingFromPile() projects this world position through basementCamera
-       to find the matching canvas-1 world position so the swap is invisible. */
-    position: { x:  0.45, y: 0, z:  1.30 },
-    rotation: { x: -1.35, y: -0.42, z:  0.18 },
-    scale:    0.80,
+    /* rotation MUST match LANDING.rotation above.
+       computeLandingFromPile() projects world pos → screen → hero cam → auto-sets LANDING.position. */
+    position: { x:  0.18, y: 0, z:  2.02 },
+    rotation: { x: -1.38, y: -0.38, z:  0.12 },
+    scale:    0.45,
   },
 };
 
 /* Canvas 2: basement lighting — damp, dark, warm.
-   Tune toneExp lower (0.75–0.85) to match basement photo darkness.
-   Key: warm ceiling bounce. Fill: cold concrete wall bounce. Rim: pipe-side glow. */
+   toneExp 0.74 = darker than studio default. Key from upper-left (window bounce).
+   Fill = right-side cold wall. Rim = orange pipe/practical glow.
+   Tune toneExp ±0.06 to control overall brightness relative to photo. */
 const BASEMENT_LIGHTS = {
-  ambientColor: 0xffddbb,
-  ambientI:     0.22,
-  keyColor:     0xffc880,
-  keyPos:       { x: 1.5, y: 3.5, z: 2.0 },
-  keyI:         0.85,
-  fillColor:    0x9ab8d0,
-  fillPos:      { x: -3,  y: 2.0, z: 2.0 },
-  fillI:        0.16,
-  rimColor:     0xff6600,
-  rimPos:       { x: 2.5, y: 1.2, z: -2.0 },
-  rimI:         0.28,
-  toneExp:      0.80,
+  ambientColor: 0xffd8b8,
+  ambientI:     0.16,
+  keyColor:     0xffb46a,
+  keyPos:       { x: -1.2, y: 4.2, z: 2.8 },
+  keyI:         1.15,
+  fillColor:    0x8fa6b8,
+  fillPos:      { x:  3.0, y: 1.8, z: 2.4 },
+  fillI:        0.12,
+  rimColor:     0xff7a2a,
+  rimPos:       { x:  2.7, y: 1.2, z: -1.8 },
+  rimI:         0.18,
+  toneExp:      0.74,
 };
 
 /* Canvas 1: hero lighting starting values */
@@ -1062,9 +1064,10 @@ const HERO_LIGHTS = {
   ambientI: 0.7, keyI: 2.5, warmI: 0.0, toneExp: 1.30, warmTint: 0.0,
 };
 
-/* Canvas 1: lighting targets tweened as bag falls into basement */
+/* Canvas 1: lighting targets tweened as bag falls into basement.
+   Starts at 25% of fall so lighting shifts before the bag reaches the floor. */
 const FALL_LIGHTS = {
-  ambientI: 0.30, keyI: 1.30, warmI: 0.95, toneExp: 0.96, warmTint: 1.0,
+  ambientI: 0.28, keyI: 1.05, warmI: 0.80, toneExp: 0.88, warmTint: 0.90,
 };
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -1155,9 +1158,12 @@ const state = {
   warmI:      HERO_LIGHTS.warmI,
   toneExp:    HERO_LIGHTS.toneExp,
   warmTint:   HERO_LIGHTS.warmTint,
-  /* 0 = only canvas-1 hero bag visible; 1 = only canvas-2 landed bag visible.
-     GSAP tweens this from 0→1 in the last 8% of the fall so the swap crossfades. */
-  crossfade:  0,
+  /* 0→1: crossfade between canvas-1 hero bag and canvas-2 landed bag.
+     Only tweened in the last ~4.5% of the fall. */
+  crossfade:     0,
+  /* 0→1: gradually blends mainBag materials toward basement look (rougher, warmer, dimmer).
+     Starts animating at 25% of fall so lighting shifts while bag is flying over the section. */
+  basementBlend: 0,
 };
 
 /* Gives every mesh in a bag its own cloned material so opacity can be set independently. */
@@ -1183,6 +1189,63 @@ function setObjectOpacity(obj, alpha) {
       mats.forEach(m => { m.opacity = alpha; });
     }
   });
+}
+
+/* Stores original material color/roughness/envMapIntensity before animation mutates them. */
+function storeOriginalMaterialValues(obj) {
+  obj.traverse(child => {
+    if (!child.isMesh || !child.material) return;
+    const mats = Array.isArray(child.material) ? child.material : [child.material];
+    mats.forEach(mat => {
+      if (mat.color && !mat.userData.originalColor)
+        mat.userData.originalColor = mat.color.clone();
+      if (mat.roughness !== undefined && mat.userData.originalRoughness === undefined)
+        mat.userData.originalRoughness = mat.roughness;
+      if (mat.envMapIntensity !== undefined && mat.userData.originalEnvMapIntensity === undefined)
+        mat.userData.originalEnvMapIntensity = mat.envMapIntensity;
+    });
+  });
+}
+
+/* Gradually blends hero-canvas mainBag materials toward the warmer/rougher basement look.
+   blend=0 → studio clean; blend=1 → basement look. Called every frame in loopBoth. */
+function applyHeroBasementBlend(obj, blend) {
+  if (blend <= 0) return;
+  obj.traverse(child => {
+    if (!child.isMesh || !child.material) return;
+    const mats = Array.isArray(child.material) ? child.material : [child.material];
+    mats.forEach(mat => {
+      if (mat.color && mat.userData.originalColor) {
+        const target = new THREE.Color(0xd18445);
+        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.22);
+      }
+      if (mat.roughness !== undefined) {
+        const orig = mat.userData.originalRoughness ?? mat.roughness;
+        mat.roughness = THREE.MathUtils.lerp(orig, 0.88, blend);
+      }
+      if (mat.envMapIntensity !== undefined) {
+        const orig = mat.userData.originalEnvMapIntensity ?? mat.envMapIntensity;
+        mat.envMapIntensity = THREE.MathUtils.lerp(orig, 0.18, blend);
+      }
+    });
+  });
+}
+
+/* Computes a natural mid-fall position derived from the (computed) landing position.
+   Call AFTER computeLandingFromPile/Scale. Prevents hardcoded midPos from causing
+   a visible depth or position jump mid-animation. */
+function computeFallMidPoint() {
+  FALL.midPos.x = THREE.MathUtils.lerp(HERO_BAG.offsetX, LANDING.position.x, 0.55);
+  FALL.midPos.y = Math.max(LANDING.position.y + 0.62, -0.12);
+  FALL.midPos.z = THREE.MathUtils.lerp(0.0, LANDING.position.z, 0.55);
+}
+
+/* Returns screen-space {x,y,z} of an object — used by DEBUG_ALIGNMENT. */
+function getScreenPos(obj, cam, width, height) {
+  const pos = new THREE.Vector3();
+  obj.getWorldPosition(pos);
+  const ndc = pos.project(cam);
+  return { x: (ndc.x + 1) * 0.5 * width, y: (1 - ndc.y) * 0.5 * height, z: ndc.z };
 }
 
 /* Moves a bag's Y so its mesh bottom sits exactly on floorY. */
@@ -1248,7 +1311,7 @@ function initBasementScene(gltf) {
      Tune opacity 0.30–0.50 to make contact shadows more/less prominent. */
   const floorMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(BASEMENT_FLOOR.size, BASEMENT_FLOOR.size),
-    new THREE.ShadowMaterial({ opacity: 0.42, transparent: true })
+    new THREE.ShadowMaterial({ opacity: 0.55, transparent: true })
   );
   floorMesh.rotation.x    = -Math.PI / 2;
   floorMesh.position.y    = BASEMENT_FLOOR.y;
@@ -1395,8 +1458,8 @@ function computeLandingScale() {
   const focalB = kH                  / (2 * Math.tan(THREE.MathUtils.degToRad(basementCamera.fov  / 2)));
 
   /* pixel_size must match: heroScale*scaleRatio*focalH/depthH = heroScale*pileScale*focalB/depthB */
-  const computed = PILE.landed.scale * (focalB / depthB) * (depthH / focalH);
-  if (isFinite(computed) && computed > 0.1 && computed < 5) {
+  const computed = PILE.landed.scale * (focalB / depthB) * (depthH / focalH) * LANDING_SCALE_CORRECTION;
+  if (isFinite(computed) && computed > 0.05 && computed < 5) {
     LANDING.scaleRatio = computed;
   }
 }
@@ -1433,14 +1496,15 @@ new GLTFLoader().load(
     state.posZ   = mainBag.position.z;
     state.scaleS = heroScale;
     mainBag.rotation.set(state.rotX, state.rotY, state.rotZ);
-    deepCloneMaterials(mainBag);   /* own material copies so opacity crossfade works */
+    deepCloneMaterials(mainBag);            /* own material copies — opacity + blend independent */
+    storeOriginalMaterialValues(mainBag);  /* store before any blend mutates them */
 
-    initBasementScene(gltf);       /* creates canvas 2, clones bags — heroScale must be known first */
+    initBasementScene(gltf);  /* creates canvas 2, clones bags — heroScale must be known first */
 
-    /* Auto-compute LANDING.position and LANDING.scaleRatio from PILE.landed's
-       projected screen position so the canvas-1↔2 swap is invisible. */
+    /* Auto-compute landing pos/scale and mid-fall path from PILE.landed's projected position. */
     computeLandingFromPile();
     computeLandingScale();
+    computeFallMidPoint();  /* depends on LANDING.position — must come after the two above */
 
     clock.start();
     loopBoth();
@@ -1481,14 +1545,10 @@ function setupScrollAnimations() {
     return;
   }
 
-  /* Single continuous fall timeline — scroll from section-top entering viewport
-     to section-center at viewport-center.  All position/rotation/scale/light tweens
-     run together on one scrubbed timeline so nothing pauses or jumps.
-
-     state.crossfade drives a material opacity crossfade between the two canvases:
-       0 → only canvas-1 mainBag visible
-       0→1 over the last 8% → both partially visible (seamless)
-       1 → only canvas-2 landedBag visible                                        */
+  /* ────────────────────────────────────────────────────────────────
+     Single continuous fall timeline — all channels coordinated so
+     nothing pauses, hovers, or jumps.  Positions driven by scroll scrub.
+     ──────────────────────────────────────────────────────────────── */
   const fallTL = gsap.timeline({
     scrollTrigger: {
       trigger: '#kelder-section',
@@ -1498,14 +1558,14 @@ function setupScrollAnimations() {
     }
   });
 
-  /* Phase 1: tip forward, stop floating */
+  /* Phase 1: tip forward, float stops */
   fallTL.to(state, {
     rotX: FALL.phase1Rot.x, rotY: FALL.phase1Rot.y, rotZ: FALL.phase1Rot.z,
     floatAmp: 0,
     ease: FALL.ease1, duration: FALL.phase1Duration,
   });
 
-  /* Phase 2: gravity drop to mid-air position */
+  /* Phase 2: gravity drop to mid-air (midPos auto-computed from landing position) */
   fallTL.to(state, {
     posX: FALL.midPos.x, posY: FALL.midPos.y, posZ: FALL.midPos.z,
     rotX: FALL.midRot.x, rotY: FALL.midRot.y, rotZ: FALL.midRot.z,
@@ -1513,7 +1573,7 @@ function setupScrollAnimations() {
     ease: FALL.ease2, duration: FALL.phase2Duration,
   });
 
-  /* Phase 3: approach floor — ends exactly at LANDING (auto-computed to match canvas 2) */
+  /* Phase 3: approach floor — ends at auto-computed LANDING position */
   fallTL.to(state, {
     posX: LANDING.position.x, posY: LANDING.position.y, posZ: LANDING.position.z,
     rotX: LANDING.rotation.x, rotY: LANDING.rotation.y, rotZ: LANDING.rotation.z,
@@ -1521,27 +1581,32 @@ function setupScrollAnimations() {
     ease: FALL.ease3, duration: FALL.phase3Duration,
   });
 
-  /* Concurrent: lighting darkens/warms from start to end */
+  /* Lighting + basementBlend — starts at 25% so color shifts while bag is mid-air.
+     The bag should look warmer/darker before it lands, not only after. */
   fallTL.to(state, {
-    ambientI: FALL_LIGHTS.ambientI, keyI: FALL_LIGHTS.keyI,
-    warmI:    FALL_LIGHTS.warmI,    toneExp: FALL_LIGHTS.toneExp,
-    warmTint: FALL_LIGHTS.warmTint,
-    ease: 'power1.inOut', duration: 1.0,
-  }, 0);
+    basementBlend: 1,
+    ambientI:      FALL_LIGHTS.ambientI,
+    keyI:          FALL_LIGHTS.keyI,
+    warmI:         FALL_LIGHTS.warmI,
+    toneExp:       FALL_LIGHTS.toneExp,
+    warmTint:      FALL_LIGHTS.warmTint,
+    ease: 'power1.inOut', duration: 0.65,
+  }, 0.25);  /* starts 25% into the timeline */
 
-  /* CSS contact shadow fades in during phase 3 */
+  /* CSS contact shadow — reveals only in phase 3 (bag approaching floor) */
   const phase3Start = FALL.phase1Duration + FALL.phase2Duration;
   fallTL.to('.bag-contact-shadow', {
-    opacity: 0.85, scale: 1, ease: 'power2.out', duration: FALL.phase3Duration,
+    opacity: 0.78, scale: 1,
+    ease: 'power2.out', duration: FALL.phase3Duration,
   }, phase3Start);
 
-  /* Crossfade: last 8% of fall — hero bag fades out while basement bag fades in.
-     loopBoth() reads state.crossfade and applies opacity to both bags' materials. */
+  /* Crossfade: final 4.5% only — bags are already aligned, so this is very short.
+     Any longer creates visible ghosting; any shorter creates a pop. */
   fallTL.to(state, {
     crossfade: 1,
-    ease: 'linear',
-    duration: 0.08,
-  }, 0.92);  /* absolute position in timeline — starts at 92% of total duration */
+    ease: 'none',
+    duration: 0.045,
+  }, 0.955);
 }
 
 /* ── Render loop (canvas 1 + canvas 2 in one RAF) ── */
@@ -1550,18 +1615,23 @@ function loopBoth() {
   if (!mainBag) return;
 
   const t  = clock.getElapsedTime();
-  const cf = state.crossfade;           /* 0 = hero only, 1 = basement only */
+  const cf = THREE.MathUtils.clamp(state.crossfade, 0, 1);
 
-  /* ── Canvas 1: hero bag visibility + opacity ── */
-  const heroVisible = cf < 1.0;
-  if (mainBag.visible !== heroVisible) mainBag.visible = heroVisible;
-  if (heroVisible) setObjectOpacity(mainBag, 1.0 - cf);
+  /* ── Canvas 1: hero bag — fully opaque before crossfade, then fades out.
+     heroAlpha is snapped to 0 at cf ≥ 0.995 to avoid lingering transparency. */
+  const heroAlpha = cf < 0.995 ? 1 - cf : 0;
+  mainBag.visible = heroAlpha > 0.01;
+  if (mainBag.visible) setObjectOpacity(mainBag, heroAlpha);
 
-  /* ── Canvas 2: landedBag visibility + opacity ── */
+  /* Gradually blend mainBag materials toward basement look as bag flies down */
+  if (state.basementBlend > 0) applyHeroBasementBlend(mainBag, state.basementBlend);
+
+  /* ── Canvas 2: landedBag — invisible until just before transition, then fades in.
+     Static bags (bag1/bag2) are always visible once created. */
   if (landedBag) {
-    const landedVisible = cf > 0.0;
-    if (landedBag.visible !== landedVisible) landedBag.visible = landedVisible;
-    if (landedVisible) setObjectOpacity(landedBag, cf);
+    const landedAlpha = cf > 0.005 ? cf : 0;
+    landedBag.visible = landedAlpha > 0.01;
+    if (landedBag.visible) setObjectOpacity(landedBag, landedAlpha);
   }
 
   /* Animate canvas-1 hero bag */
@@ -1590,6 +1660,15 @@ function loopBoth() {
       const rect = kelderEl.getBoundingClientRect();
       if (rect.bottom > -200 && rect.top < window.innerHeight + 200) {
         basementRenderer.render(basementScene, basementCamera);
+
+        /* Debug: log screen-space coords of both bags to verify alignment */
+        if (DEBUG_ALIGNMENT && cf > 0.01 && cf < 0.99) {
+          const kelderEl2 = document.getElementById('kelder-section');
+          const kW = kelderEl2.offsetWidth, kH = kelderEl2.offsetHeight;
+          const bPos  = getScreenPos(landedBag, basementCamera, kW, kH);
+          const hPos  = getScreenPos(mainBag,   camera,         window.innerWidth, window.innerHeight);
+          console.log('hero', hPos.x.toFixed(1), hPos.y.toFixed(1), '| basement', bPos.x.toFixed(1), bPos.y.toFixed(1));
+        }
       }
     }
   }
