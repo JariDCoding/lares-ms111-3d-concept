@@ -743,9 +743,10 @@ renderer.shadowMap.enabled = true;
 /* Scene */
 const scene = new THREE.Scene();
 
-/* Camera */
+/* Camera — positioned to show model lower in the canvas */
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100);
-camera.position.set(0, 0.4, 3.8);
+camera.position.set(0.3, 1.2, 3.8);
+camera.lookAt(0, -0.3, 0);
 
 /* Studio lighting */
 const ambient = new THREE.AmbientLight(0xfff8f0, 0.7);
@@ -780,6 +781,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
 }
 const ro = new ResizeObserver(resize);
 ro.observe(wrap);
@@ -803,7 +805,10 @@ loader.load(
     model.position.sub(centre);            // centre at origin
     const scale = 2.0 / maxDim;
     model.scale.setScalar(scale);
-    model.position.y -= size.y * scale * 0.05; // slight downward nudge
+
+    // Fixed 3/4 presentation angle — slight turn + forward lean
+    model.rotation.y = -0.55;   // ~31° turn to the right
+    model.rotation.x =  0.08;   // slight forward tilt
 
     // Cast/receive shadows on every mesh
     model.traverse(node => {
@@ -814,6 +819,7 @@ loader.load(
     });
 
     scene.add(model);
+    render();
 
     // Complete loading UI
     bar.style.width   = '100%';
@@ -839,24 +845,10 @@ loader.load(
   }
 );
 
-/* Render loop */
-let elapsed = 0;
-const clock  = new THREE.Clock();
-
-function animate() {
-  requestAnimationFrame(animate);
-  elapsed += clock.getDelta();
-
-  if (model) {
-    // Gentle y-axis rotation
-    model.rotation.y = elapsed * 0.4;
-    // Subtle floating bob
-    model.position.y = Math.sin(elapsed * 0.8) * 0.04 - 0.05;
-  }
-
+/* Render helper — called after model loads */
+function render() {
   renderer.render(scene, camera);
 }
-animate();
 </script>
 
 </body>
