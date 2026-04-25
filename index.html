@@ -886,7 +886,7 @@ resize();
 /* ── Landing constants — tune to align bag with basement floor ── */
 const LAND_POS   = { x:  1.10, y: -0.50, z:  0.10 };
 const LAND_ROT   = { x:  1.25, y: -0.15, z: -0.20 };
-const LAND_SCALE = 0.82;
+const LAND_SCALE = 0.60;
 
 /* ── State proxy — GSAP writes, render loop reads ── */
 const state = {
@@ -913,13 +913,24 @@ new GLTFLoader().load(
   (gltf) => {
     model = gltf.scene;
 
-    const box    = new THREE.Box3().setFromObject(model);
-    const centre = box.getCenter(new THREE.Vector3());
-    const maxDim = Math.max(...box.getSize(new THREE.Vector3()).toArray());
+    /* Add to scene first so matrixWorld is resolved for all child nodes */
+    scene.add(model);
+    model.updateMatrixWorld(true);
+
+    /* Compute bounding box from mesh geometry only — avoids empty-node inflation */
+    const meshBox = new THREE.Box3();
+    model.traverse(child => {
+      if (child.isMesh) meshBox.expandByObject(child);
+    });
+    const centre = meshBox.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(...meshBox.getSize(new THREE.Vector3()).toArray());
+
+    /* Centre and scale — 2.8 units = strong hero presence */
     model.position.sub(centre);
-    model.scale.setScalar(2.0 / maxDim);
-    /* Canvas is now full-viewport, so x=0 = page centre.
-       Shift right into the hero's right column and lower slightly. */
+    model.scale.setScalar(2.8 / maxDim);
+
+    /* Canvas is full-viewport: x=0 is the page centre.
+       Push into the right column and position vertically. */
     model.position.x += 1.30;
     model.position.y -= 0.40;
 
@@ -928,8 +939,6 @@ new GLTFLoader().load(
     state.posY = model.position.y;
     state.posZ = model.position.z;
     model.rotation.set(state.rotX, state.rotY, state.rotZ);
-
-    scene.add(model);
     clock.start();
     loop();
     setupScrollAnimations();
