@@ -7,6 +7,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;600&family=Inter:wght@600&display=swap" rel="stylesheet">
+
+  <!-- Three.js module imports -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -22,6 +33,56 @@
       font-family: 'Karla', sans-serif;
       background: var(--white);
       line-height: normal;
+    }
+
+    /* ═══════════════════════════════════════════
+       LOADING SCREEN
+    ═══════════════════════════════════════════ */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      transition: opacity .6s ease;
+    }
+
+    #loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-logo {
+      width: clamp(120px, 16vw, 200px);
+      height: auto;
+    }
+
+    .loading-bar-wrap {
+      width: clamp(200px, 30vw, 360px);
+      height: 4px;
+      background: rgba(0,0,0,.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .loading-bar {
+      height: 100%;
+      background: var(--orange);
+      width: 0%;
+      border-radius: 4px;
+      transition: width .25s ease;
+    }
+
+    .loading-label {
+      font-family: 'Karla', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(0,0,0,.4);
+      letter-spacing: .05em;
     }
 
     /* ═══════════════════════════════════════════
@@ -97,7 +158,7 @@
       height: var(--nav-h);
       border-radius: clamp(28px, 3.5vw, 50px) 0 0 clamp(28px, 3.5vw, 50px);
       box-shadow: 0 2px 4px rgba(131,131,131,.25);
-      /* no overflow:hidden — dropdowns must be able to overflow below */
+      /* no overflow:hidden — dropdowns must overflow below */
       background: var(--white);
     }
 
@@ -108,7 +169,6 @@
       align-items: center;
       padding: 0 clamp(14px, 3.3vw, 48px);
       flex-shrink: 0;
-      /* apply rounded corner only to this section */
       border-radius: clamp(28px, 3.5vw, 50px) 0 0 clamp(28px, 3.5vw, 50px);
     }
 
@@ -291,14 +351,21 @@
     ═══════════════════════════════════════════ */
     .hero {
       background: var(--white);
-      min-height: clamp(480px, 60vw, 860px);
       display: flex;
       flex-direction: column;
     }
 
-    .hero-content {
+    /* 2-column layout: text left, 3D right */
+    .hero-inner {
       flex: 1;
-      padding: clamp(40px, 9vw, 130px) clamp(20px, 7.6vw, 110px) clamp(60px, 7vw, 100px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      min-height: clamp(480px, 55vw, 800px);
+    }
+
+    .hero-content {
+      padding: clamp(40px, 9vw, 130px) clamp(20px, 4vw, 60px) clamp(60px, 7vw, 100px) clamp(20px, 7.6vw, 110px);
     }
 
     .hero-headline {
@@ -365,6 +432,19 @@
 
     .btn-secondary:hover { background: #f5f5f5; }
 
+    /* 3D canvas column */
+    .hero-canvas-wrap {
+      width: 100%;
+      height: clamp(300px, 45vw, 650px);
+      position: relative;
+    }
+
+    #hero-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
     /* ═══════════════════════════════════════════
        PARTNER BAR
     ═══════════════════════════════════════════ */
@@ -407,6 +487,11 @@
       .nav-logo-area { flex: 1; }
       .partner-bar { padding: 0 20px; gap: 20px; }
       .partner-bar .buildwise-logo:nth-child(3) { display: none; }
+
+      /* Stack hero on mobile */
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-content { padding-bottom: 20px; }
+      .hero-canvas-wrap { height: clamp(240px, 70vw, 360px); }
     }
 
     @media (max-width: 479px) {
@@ -417,6 +502,17 @@
   </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     LOADING SCREEN
+═══════════════════════════════════════════ -->
+<div id="loading-screen">
+  <img class="loading-logo" src="assets/lares-logo.png" alt="Lares Solutions">
+  <div class="loading-bar-wrap">
+    <div class="loading-bar" id="loading-bar"></div>
+  </div>
+  <span class="loading-label" id="loading-label">Laden…</span>
+</div>
 
 <!-- ═══════════════════════════════════════════
      SITE HEADER — Figma 45-600 (sitewide)
@@ -531,20 +627,29 @@
 ═══════════════════════════════════════════ -->
 <section class="hero">
 
-  <div class="hero-content">
-    <h1 class="hero-headline">
-      Producten en advies<br>
-      voor <span class="accent">professionele<br>
-      vochtbestrijding</span>
-    </h1>
-    <p class="hero-sub">
-      Sinds 25 jaar het technisch klankbord van aannemers,
-      architecten en studiebureaus met levering binnen 48&nbsp;u in heel België.
-    </p>
-    <div class="hero-btns">
-      <button class="btn-primary">Vraag advies →</button>
-      <button class="btn-secondary">Onze producten</button>
+  <div class="hero-inner">
+
+    <div class="hero-content">
+      <h1 class="hero-headline">
+        Producten en advies<br>
+        voor <span class="accent">professionele<br>
+        vochtbestrijding</span>
+      </h1>
+      <p class="hero-sub">
+        Sinds 25 jaar het technisch klankbord van aannemers,
+        architecten en studiebureaus met levering binnen 48&nbsp;u in heel België.
+      </p>
+      <div class="hero-btns">
+        <button class="btn-primary">Vraag advies →</button>
+        <button class="btn-secondary">Onze producten</button>
+      </div>
     </div>
+
+    <!-- WebGL canvas -->
+    <div class="hero-canvas-wrap">
+      <canvas id="hero-canvas"></canvas>
+    </div>
+
   </div>
 
   <div class="partner-bar">
@@ -575,9 +680,9 @@ navToggle.addEventListener('click', () => {
 
 /* ── desktop dropdowns ── */
 document.querySelectorAll('.nav-link[data-target]').forEach(link => {
-  const group  = link.closest('.nav-link-group');
-  const ddId   = link.dataset.target;
-  const dd     = document.getElementById(ddId);
+  const group   = link.closest('.nav-link-group');
+  const ddId    = link.dataset.target;
+  const dd      = document.getElementById(ddId);
   const navWrap = link.closest('.header-nav-wrap');
 
   function positionDD() {
@@ -587,7 +692,6 @@ document.querySelectorAll('.nav-link[data-target]').forEach(link => {
   }
 
   function open() {
-    // close any other open dropdown first
     document.querySelectorAll('.nav-dd.is-open').forEach(el => {
       if (el !== dd) el.classList.remove('is-open');
     });
@@ -609,13 +713,150 @@ document.querySelectorAll('.nav-link[data-target]').forEach(link => {
   dd.addEventListener('mouseleave',   e => { if (!link.contains(e.relatedTarget)) close(); });
 });
 
-/* close dropdowns on outside click */
 document.addEventListener('click', e => {
   if (!e.target.closest('.nav-link-group') && !e.target.closest('.nav-dd')) {
     document.querySelectorAll('.nav-dd.is-open').forEach(el => el.classList.remove('is-open'));
     document.querySelectorAll('.nav-link-group.is-open').forEach(el => el.classList.remove('is-open'));
   }
 });
+</script>
+
+<!-- ── Three.js hero scene ── -->
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const canvas = document.getElementById('hero-canvas');
+const wrap   = canvas.parentElement;
+const bar    = document.getElementById('loading-bar');
+const label  = document.getElementById('loading-label');
+const screen = document.getElementById('loading-screen');
+
+/* Renderer */
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+renderer.shadowMap.enabled = true;
+
+/* Scene */
+const scene = new THREE.Scene();
+
+/* Camera */
+const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100);
+camera.position.set(0, 0.4, 3.8);
+
+/* Studio lighting */
+const ambient = new THREE.AmbientLight(0xfff8f0, 0.7);
+scene.add(ambient);
+
+// Key light — top right front
+const key = new THREE.DirectionalLight(0xffffff, 2.5);
+key.position.set(4, 6, 5);
+key.castShadow = true;
+scene.add(key);
+
+// Fill light — left
+const fill = new THREE.DirectionalLight(0xfff0e0, 1.0);
+fill.position.set(-5, 2, 3);
+scene.add(fill);
+
+// Rim light — back right
+const rim = new THREE.DirectionalLight(0xffffff, 0.6);
+rim.position.set(2, 4, -5);
+scene.add(rim);
+
+// Subtle ground bounce
+const bounce = new THREE.DirectionalLight(0xffd9a0, 0.4);
+bounce.position.set(0, -3, 2);
+scene.add(bounce);
+
+/* Resize */
+function resize() {
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+const ro = new ResizeObserver(resize);
+ro.observe(wrap);
+resize();
+
+/* Load GLB */
+let model = null;
+const loader = new GLTFLoader();
+
+loader.load(
+  'assets/ms111_bag.glb',
+  (gltf) => {
+    model = gltf.scene;
+
+    // Centre + fit model in view
+    const box    = new THREE.Box3().setFromObject(model);
+    const centre = box.getCenter(new THREE.Vector3());
+    const size   = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+
+    model.position.sub(centre);            // centre at origin
+    const scale = 2.0 / maxDim;
+    model.scale.setScalar(scale);
+    model.position.y -= size.y * scale * 0.05; // slight downward nudge
+
+    // Cast/receive shadows on every mesh
+    model.traverse(node => {
+      if (node.isMesh) {
+        node.castShadow    = true;
+        node.receiveShadow = true;
+      }
+    });
+
+    scene.add(model);
+
+    // Complete loading UI
+    bar.style.width   = '100%';
+    label.textContent = 'Klaar';
+
+    setTimeout(() => {
+      screen.classList.add('fade-out');
+      setTimeout(() => screen.remove(), 700);
+    }, 350);
+  },
+  (xhr) => {
+    if (xhr.total) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 95); // cap at 95 until done
+      bar.style.width   = pct + '%';
+      label.textContent = `Laden… ${pct}%`;
+    }
+  },
+  (err) => {
+    console.error('GLB load error:', err);
+    // Still dismiss loading screen on error
+    screen.classList.add('fade-out');
+    setTimeout(() => screen.remove(), 700);
+  }
+);
+
+/* Render loop */
+let elapsed = 0;
+const clock  = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  elapsed += clock.getDelta();
+
+  if (model) {
+    // Gentle y-axis rotation
+    model.rotation.y = elapsed * 0.4;
+    // Subtle floating bob
+    model.position.y = Math.sin(elapsed * 0.8) * 0.04 - 0.05;
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
 </script>
 
 </body>
