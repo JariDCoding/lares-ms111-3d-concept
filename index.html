@@ -91,13 +91,13 @@
     .site-header {
       width: 100%;
       background: var(--white);
-      padding-top: 3px;
+      padding-top: 13px;   /* 10 px lower than before */
     }
 
     /* ── dark info tab ───────────────────────── */
     .header-tab {
-      margin-left: clamp(140px, 25.8vw, 371px);
-      margin-right: clamp(16px, 3.4vw, 49px);
+      margin-left: clamp(140px, 25.8vw, 495px);
+      margin-right: clamp(16px, 3.4vw, 65px);
       background: var(--dark);
       border-radius: 25px 50px 0 0;
       height: clamp(34px, 2.85vw, 41px);
@@ -372,7 +372,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       align-items: center;
-      min-height: clamp(480px, 55vw, 800px);
+      min-height: clamp(480px, 55vw, 940px);
     }
 
     .hero-content {
@@ -461,18 +461,18 @@
       pointer-events: none;
     }
 
-    /* CSS contact shadow — fades in as bag lands */
+    /* CSS contact shadow — fades in as bag pile lands */
     .bag-contact-shadow {
       position: absolute;
-      right: clamp(80px, 15vw, 280px);
-      bottom: clamp(80px, 14vh, 180px);
-      width: clamp(140px, 14vw, 260px);
-      height: clamp(32px, 4vw, 70px);
+      right: clamp(40px, 8vw, 160px);
+      bottom: clamp(60px, 10vh, 140px);
+      width: clamp(220px, 22vw, 420px);
+      height: clamp(44px, 5.5vw, 110px);
       border-radius: 999px;
-      background: rgba(0,0,0,0.42);
-      filter: blur(18px);
+      background: rgba(0,0,0,0.30);
+      filter: blur(28px);
       opacity: 0;
-      transform: scale(0.6);
+      transform: scale(0.5);
       z-index: 3;
       pointer-events: none;
       transition: none;
@@ -509,13 +509,14 @@
     .kelder-section {
       position: relative;
       width: 100%;
-      min-height: clamp(420px, 60vw, 780px);
+      min-height: clamp(520px, 62vw, 1050px);
       overflow: hidden;
       background-image: url('assets/basement.png');
       background-size: cover;
-      background-position: center;
+      background-position: center 40%;
     }
 
+    /* Left dark gradient — makes text readable over the photo */
     .kelder-section::before {
       content: '';
       position: absolute;
@@ -529,12 +530,29 @@
       z-index: 1;
     }
 
+    /* Top fade — white blends smoothly into the basement photo */
+    .kelder-section::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: clamp(80px, 14vw, 220px);
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,1) 0%,
+        rgba(255,255,255,0) 100%
+      );
+      z-index: 2;
+      pointer-events: none;
+    }
+
     .kelder-text {
       position: absolute;
       left: clamp(32px, 14vw, 200px);
       top: 50%;
       transform: translateY(-50%);
-      z-index: 2;
+      z-index: 5;
     }
 
     .kelder-count {
@@ -756,7 +774,7 @@
 </section>
 
 <!-- ══ KELDERDICHTING ══════════════════════════════════════════ -->
-<div style="background:#fff; height: clamp(48px, 7vw, 100px);"></div>
+<div style="background:#fff; height: clamp(24px, 3vw, 48px);"></div>
 <section class="kelder-section" id="kelder-section">
   <div class="kelder-text">
     <span class="kelder-count">01 / 04</span>
@@ -830,43 +848,69 @@ const { gsap, ScrollTrigger } = window;
 gsap.registerPlugin(ScrollTrigger);
 
 /* ════════════════════════════════════════════════════════════════
-   TUNING CONSTANTS — everything in one block
+   TUNING CONSTANTS — adjust everything here
 
-   BASEMENT_BAG_ANCHORS positions are fractions of the #kelder-section rect:
-     xRatio 0.0 = left edge of section,  1.0 = right edge
-     yRatio 0.0 = top  edge of section,  1.0 = bottom edge
-   Raise yRatio to push bags lower (closer to floor).
-   z = world-space depth (0 = at look-at plane, positive = closer to camera).
-   scale = fraction of the hero bag scale (0.5 = half size).
+   HERO_BAG: starting offset after GLB auto-centering.
+   MAIN_BAG_TWIRL: controls the 3-phase fall animation.
+     departRot  = rotation at end of Phase 1 (departure lean)
+     midPos     = world position at end of Phase 2 (midair peak)
+     midRot     = rotation at end of Phase 2 (tumbling pose)
+     midScale   = bag scale during fall (fraction of heroScale)
+   MAIN_BAG_LANDING: final resting pose on top of the pile.
+   BASEMENT_BAG_ANCHORS: page-anchored small bags.
+     xRatio/yRatio = fraction of #kelder-section rect (0=top-left, 1=bottom-right)
+   BASEMENT_LIGHTING: light values tweened to when bag enters basement.
+     toneExp  = renderer.toneMappingExposure (lower = darker overall)
+     warmTint = 0–1, shifts keyLight from white toward amber
 ════════════════════════════════════════════════════════════════ */
 
 const HERO_BAG = {
-  offsetX:   1.30,            /* push right of viewport centre after GLB centering */
-  offsetY:  -0.40,            /* push below viewport centre */
+  offsetX:   1.30,
+  offsetY:  -0.40,
   rotation: { x: 0.08, y: -0.55, z: -0.13 },
 };
 
+const MAIN_BAG_TWIRL = {
+  /* Phase 1: bag departs hero with a weighted lean */
+  departRot: { x: -0.32, y: -0.82, z:  0.22 },
+  /* Phase 2: mid-air tumble — full rotation while gravity drops */
+  midPos:    { x: 1.06,  y: -0.58, z:  0.04 },
+  midRot:    { x: -2.85, y:  0.45, z:  1.80 },
+  midScale:  0.75,   /* fraction of heroScale at peak of fall */
+};
+
 const MAIN_BAG_LANDING = {
-  position:   { x: 1.10,  y: -0.75, z:  0.10 },
-  rotation:   { x: -1.05, y: -0.55, z:  0.45 },
-  scaleRatio: 0.60,
+  position:   { x: 1.08, y: -0.76, z:  0.10 },
+  rotation:   { x: -1.20, y: -0.40, z:  0.62 },
+  scaleRatio: 0.58,
 };
 
 const BASEMENT_BAG_ANCHORS = {
   bag1: {
-    xRatio:   0.70,   /* right side of the section                  */
-    yRatio:   0.72,   /* lower area — basement floor                */
-    z:        0.05,   /* depth; positive = slightly toward camera   */
-    scale:    0.50,   /* fraction of heroScale                      */
-    rotation: { x: -1.05, y: -0.50, z:  0.30 },
+    xRatio:   0.73,
+    yRatio:   0.72,
+    z:        0.04,
+    scale:    0.50,
+    rotation: { x: -1.42, y: -0.30, z:  0.50 },
   },
   bag2: {
-    xRatio:   0.62,
+    xRatio:   0.64,
     yRatio:   0.76,
-    z:        0.12,
-    scale:    0.48,
-    rotation: { x: -1.05, y: -0.65, z: -0.15 },
+    z:        0.10,
+    scale:    0.47,
+    rotation: { x: -1.50, y: -0.88, z: -0.35 },
   },
+};
+
+/* Basement lighting — tweened to as mainBag falls into the basement.
+   Lower toneExp/ambientI = darker overall.  Higher warmI/warmTint = warmer amber.
+   Raise keyI if bags look too dark; raise warmTint for more amber key. */
+const BASEMENT_LIGHTING = {
+  ambientI: 0.30,
+  keyI:     1.30,
+  warmI:    0.95,
+  toneExp:  0.96,   /* renderer.toneMappingExposure */
+  warmTint: 1.0,    /* 0 = white key light, 1 = warm amber key */
 };
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -944,6 +988,8 @@ const state = {
   scaleS: 1.0,
   floatAmp: 1,
   ambientI: 0.7, keyI: 2.5, warmI: 0,
+  toneExp:  1.30,
+  warmTint: 0,
 };
 
 /* ── screenToWorld ────────────────────────────────────────────────
@@ -1077,33 +1123,77 @@ function setupScrollAnimations() {
     Object.assign(state, {
       posX: MAIN_BAG_LANDING.position.x, posY: MAIN_BAG_LANDING.position.y, posZ: MAIN_BAG_LANDING.position.z,
       rotX: MAIN_BAG_LANDING.rotation.x, rotY: MAIN_BAG_LANDING.rotation.y, rotZ: MAIN_BAG_LANDING.rotation.z,
-      scaleS: heroScale * MAIN_BAG_LANDING.scaleRatio, floatAmp: 0, warmI: 0.55,
+      scaleS: heroScale * MAIN_BAG_LANDING.scaleRatio, floatAmp: 0,
+      ambientI: BASEMENT_LIGHTING.ambientI, keyI: BASEMENT_LIGHTING.keyI,
+      warmI: BASEMENT_LIGHTING.warmI, toneExp: BASEMENT_LIGHTING.toneExp,
+      warmTint: BASEMENT_LIGHTING.warmTint,
     });
     const s = document.querySelector('.bag-contact-shadow');
     if (s) { s.style.opacity = '0.45'; s.style.transform = 'scale(1)'; }
     return;
   }
 
-  /* mainBag falls in as kelder top enters viewport → kelder center hits center */
+  /* mainBag 3-phase fall as kelder top enters viewport → kelder center hits center
+     Phase 1 [0 → 0.35]  departure lean  — bag tilts and float stops
+     Phase 2 [0.35→ 0.72] midair tumble  — full spin through the air
+     Phase 3 [0.72→ 1.0]  landing snap   — slams down to final pose */
   const fallTL = gsap.timeline({
     scrollTrigger: { trigger: '#kelder-section', start: 'top bottom', end: 'center center', scrub: 1.4 }
   });
-  fallTL.to(state, { posY: MAIN_BAG_LANDING.position.y, ease: 'power3.in', duration: 1 }, 0);
+
+  /* Phase 1 — departure lean */
   fallTL.to(state, {
-    posX: MAIN_BAG_LANDING.position.x, posZ: MAIN_BAG_LANDING.position.z,
-    rotX: MAIN_BAG_LANDING.rotation.x, rotY: MAIN_BAG_LANDING.rotation.y, rotZ: MAIN_BAG_LANDING.rotation.z,
-    scaleS: heroScale * MAIN_BAG_LANDING.scaleRatio, floatAmp: 0,
-    ease: 'power1.inOut', duration: 1
+    rotX: MAIN_BAG_TWIRL.departRot.x,
+    rotY: MAIN_BAG_TWIRL.departRot.y,
+    rotZ: MAIN_BAG_TWIRL.departRot.z,
+    floatAmp: 0,
+    ease: 'power1.in',
+    duration: 0.35,
+  });
+
+  /* Phase 2 — midair tumble */
+  fallTL.to(state, {
+    posX: MAIN_BAG_TWIRL.midPos.x,
+    posY: MAIN_BAG_TWIRL.midPos.y,
+    posZ: MAIN_BAG_TWIRL.midPos.z,
+    rotX: MAIN_BAG_TWIRL.midRot.x,
+    rotY: MAIN_BAG_TWIRL.midRot.y,
+    rotZ: MAIN_BAG_TWIRL.midRot.z,
+    scaleS: heroScale * MAIN_BAG_TWIRL.midScale,
+    ease: 'power2.in',
+    duration: 0.37,
+  });
+
+  /* Phase 3 — landing snap */
+  fallTL.to(state, {
+    posX: MAIN_BAG_LANDING.position.x,
+    posY: MAIN_BAG_LANDING.position.y,
+    posZ: MAIN_BAG_LANDING.position.z,
+    rotX: MAIN_BAG_LANDING.rotation.x,
+    rotY: MAIN_BAG_LANDING.rotation.y,
+    rotZ: MAIN_BAG_LANDING.rotation.z,
+    scaleS: heroScale * MAIN_BAG_LANDING.scaleRatio,
+    ease: 'power3.out',
+    duration: 0.28,
+  });
+
+  /* Concurrent: lighting transition + shadow reveal */
+  fallTL.to(state, {
+    ambientI: BASEMENT_LIGHTING.ambientI,
+    keyI:     BASEMENT_LIGHTING.keyI,
+    warmI:    BASEMENT_LIGHTING.warmI,
+    toneExp:  BASEMENT_LIGHTING.toneExp,
+    warmTint: BASEMENT_LIGHTING.warmTint,
+    ease: 'power1.inOut', duration: 1.0,
   }, 0);
-  fallTL.to(state, { ambientI: 0.45, keyI: 1.8, warmI: 0.60, ease: 'power1.inOut', duration: 1 }, 0);
-  fallTL.to('.bag-contact-shadow', { opacity: 1, scale: 1, ease: 'power2.out', duration: 0.25 }, 0.75);
+  fallTL.to('.bag-contact-shadow', { opacity: 1, scale: 1, ease: 'power2.out', duration: 0.28 }, 0.72);
 
   /* Subtle settle after impact */
   gsap.timeline({
     scrollTrigger: { trigger: '#kelder-section', start: 'center center', end: 'bottom center', scrub: 0.6 }
   })
   .to(state, { posY: MAIN_BAG_LANDING.position.y + 0.07, ease: 'power2.out',  duration: 0.15 }, 0)
-  .to(state, { posY: MAIN_BAG_LANDING.position.y - 0.02, rotZ: MAIN_BAG_LANDING.rotation.z * 0.6, ease: 'power2.in', duration: 0.85 }, 0.15)
+  .to(state, { posY: MAIN_BAG_LANDING.position.y - 0.02, rotZ: MAIN_BAG_LANDING.rotation.z - 0.06, ease: 'power2.in', duration: 0.85 }, 0.15)
   .to('.bag-contact-shadow', { opacity: 0.75, scale: 1.2,  ease: 'power2.out', duration: 0.15 }, 0)
   .to('.bag-contact-shadow', { opacity: 0.48, scale: 1.05, ease: 'power2.out', duration: 0.85 }, 0.15);
 }
@@ -1130,6 +1220,8 @@ function loop() {
   ambientLight.intensity = state.ambientI;
   keyLight.intensity     = state.keyI;
   warmLight.intensity    = state.warmI;
+  renderer.toneMappingExposure = state.toneExp;
+  keyLight.color.setRGB(1.0, 1.0 - state.warmTint * 0.10, 1.0 - state.warmTint * 0.22);
 
   /* basementBag1 + basementBag2: convert kelder section rect → world coords every frame.
      This is what makes them scroll with the page instead of staying viewport-fixed. */
