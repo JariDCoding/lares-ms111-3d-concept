@@ -738,7 +738,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.3;
-renderer.shadowMap.enabled = true;
+// No shadow maps — avoids self-shadowing acne artifacts on the bag mesh
 
 /* Scene */
 const scene = new THREE.Scene();
@@ -755,7 +755,6 @@ scene.add(ambient);
 // Key light — top right front
 const key = new THREE.DirectionalLight(0xffffff, 2.5);
 key.position.set(4, 6, 5);
-key.castShadow = true;
 scene.add(key);
 
 // Fill light — left
@@ -806,21 +805,13 @@ loader.load(
     const scale = 2.0 / maxDim;
     model.scale.setScalar(scale);
 
-    // Move down so model aligns with hero text mid-point
-    model.position.y -= 0.45;
+    // 10% lower than text mid-point
+    model.position.y -= 0.60;
 
-    // 3/4 angle + Z tilt for organic lean
-    model.rotation.y = -0.55;   // ~31° turn
-    model.rotation.x =  0.08;   // slight forward lean
-    model.rotation.z =  0.13;   // Z-axis tilt — bag leans left naturally
-
-    // Cast/receive shadows on every mesh
-    model.traverse(node => {
-      if (node.isMesh) {
-        node.castShadow    = true;
-        node.receiveShadow = true;
-      }
-    });
+    // 3/4 angle + Z tilt to the RIGHT for cool product pose
+    model.rotation.y = -0.55;    // ~31° Y turn
+    model.rotation.x =  0.08;    // slight forward lean
+    model.rotation.z = -0.13;    // negative = leans RIGHT
 
     scene.add(model);
     startFloat();
@@ -852,7 +843,7 @@ loader.load(
 /* Floating animation — starts once model is in scene */
 const clock = new THREE.Clock();
 let baseY = 0;
-const BASE_Z_TILT = 0.13;
+const BASE_Z_TILT = -0.13;
 
 function startFloat() {
   baseY = model.position.y;
