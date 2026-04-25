@@ -15,6 +15,7 @@
       --orange-dk: #b86519;
       --dark:      #1a1a1a;
       --white:     #ffffff;
+      --nav-h:     clamp(56px, 5.7vw, 82px);
     }
 
     html, body {
@@ -24,27 +25,23 @@
     }
 
     /* ═══════════════════════════════════════════
-       SITE HEADER  (Figma node 45-600)
+       SITE HEADER
     ═══════════════════════════════════════════ */
     .site-header {
       width: 100%;
       background: var(--white);
-      /* 3 px white gap at very top, matching Figma */
       padding-top: 3px;
     }
 
-    /* ── dark info tab (peeks above nav) ─────── */
+    /* ── dark info tab ───────────────────────── */
     .header-tab {
-      /* starts at ~25.8% from left — logo area stays white */
       margin-left: clamp(140px, 25.8vw, 371px);
-      /* right edge must align with nav bar right edge */
       margin-right: clamp(16px, 3.4vw, 49px);
       background: var(--dark);
       border-radius: 25px 50px 0 0;
       height: clamp(34px, 2.85vw, 41px);
       display: flex;
       align-items: center;
-      /* equal padding left and right — phone has same inset as B2B Login */
       padding: 0 clamp(16px, 4.5vw, 66px);
     }
 
@@ -64,27 +61,27 @@
       gap: 6px;
     }
 
-    .htab-item a {
-      color: var(--white);
-      text-decoration: underline;
-    }
+    .htab-item a { color: var(--white); text-decoration: underline; }
 
+    /* all icons in dark tab: keep natural orange color */
     .htab-icon {
       width: clamp(14px, 1.25vw, 18px);
       height: clamp(14px, 1.25vw, 18px);
       flex-shrink: 0;
     }
 
-    /* language flag */
+    /* Nederlands dropdown arrow: white + pointing down */
+    .htab-lang { cursor: pointer; }
+    .htab-lang .htab-icon {
+      filter: brightness(10);
+      transform: rotate(90deg);
+    }
+
     .htab-flag {
       width: 20px;
       height: auto;
       border-radius: 2px;
       flex-shrink: 0;
-    }
-
-    .htab-lang {
-      cursor: pointer;
     }
 
     /* ── nav bar ─────────────────────────────── */
@@ -97,21 +94,22 @@
       position: relative;
       display: flex;
       align-items: stretch;
-      height: clamp(56px, 5.7vw, 82px);
+      height: var(--nav-h);
       border-radius: clamp(28px, 3.5vw, 50px) 0 0 clamp(28px, 3.5vw, 50px);
       box-shadow: 0 2px 4px rgba(131,131,131,.25);
-      overflow: hidden;
+      /* no overflow:hidden — dropdowns must be able to overflow below */
       background: var(--white);
     }
 
-    /* logo section */
+    /* logo */
     .nav-logo-area {
       background: var(--white);
       display: flex;
       align-items: center;
       padding: 0 clamp(14px, 3.3vw, 48px);
       flex-shrink: 0;
-      z-index: 2;
+      /* apply rounded corner only to this section */
+      border-radius: clamp(28px, 3.5vw, 50px) 0 0 clamp(28px, 3.5vw, 50px);
     }
 
     .nav-logo {
@@ -120,25 +118,29 @@
       display: block;
     }
 
-    /* orange links strip */
+    /* orange strip */
     .nav-links {
       flex: 1;
       background: var(--orange);
       display: flex;
       align-items: center;
-      /* spread links evenly across the orange strip */
       justify-content: space-evenly;
       gap: clamp(10px, 2.5vw, 36px);
       padding: 0 clamp(14px, 2.8vw, 40px);
-      /* diagonal cut on the left edge, matching Figma Subtract shape */
       clip-path: polygon(clamp(10px,1.2vw,17px) 0%, 100% 0%, 100% 100%, 0% 100%);
       margin-left: -1px;
+    }
+
+    /* nav link wrappers — needed for dropdown positioning */
+    .nav-link-group {
+      position: relative;
+      display: inline-flex;
     }
 
     .nav-link {
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       font-size: clamp(13px, 1.5vw, 22px);
       font-weight: 600;
       color: var(--white);
@@ -147,13 +149,20 @@
       cursor: pointer;
     }
 
-    .nav-link img {
+    /* nav dropdown arrows: white + pointing DOWN */
+    .nav-link .nav-arrow {
       width: clamp(13px, 1.4vw, 20px);
       height: clamp(13px, 1.4vw, 20px);
       filter: brightness(10);
+      transform: rotate(90deg);
+      transition: transform .25s;
     }
 
-    /* START NU section */
+    .nav-link-group.is-open .nav-arrow {
+      transform: rotate(-90deg); /* flip up when open */
+    }
+
+    /* START NU — arrows pointing RIGHT */
     .nav-cta-area {
       background: var(--white);
       display: flex;
@@ -172,14 +181,45 @@
       cursor: pointer;
     }
 
+    /* no rotation = points RIGHT */
     .nav-start img {
       width: clamp(16px, 1.8vw, 26px);
       height: clamp(16px, 1.8vw, 26px);
-      transform: rotate(-90deg);
-      margin-left: -5px;
+      margin-left: -7px;
     }
 
-    /* hamburger — mobile only */
+    /* ── desktop dropdown panels ─────────────── */
+    .nav-dd {
+      display: none;
+      position: absolute;
+      z-index: 400;
+      top: var(--nav-h);
+      background: var(--white);
+      box-shadow: 0 8px 28px rgba(0,0,0,.14);
+      border-radius: 0 0 10px 10px;
+      flex-direction: column;
+      min-width: 210px;
+      border-top: 2px solid var(--orange);
+    }
+
+    .nav-dd.is-open { display: flex; }
+
+    .nav-dd a {
+      padding: 13px 20px;
+      font-family: 'Karla', sans-serif;
+      font-size: clamp(13px, 1vw, 15px);
+      font-weight: 600;
+      color: var(--dark);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+
+    .nav-dd a:last-child { border-bottom: none; }
+    .nav-dd a:hover { background: #fdf6f0; color: var(--orange); }
+
+    /* ── hamburger ───────────────────────────── */
     .nav-toggle {
       display: none;
       background: none;
@@ -207,7 +247,7 @@
     .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scaleX(0); }
     .nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); width: 24px; }
 
-    /* mobile dropdown */
+    /* ── mobile dropdown ─────────────────────── */
     .mobile-menu {
       display: none;
       position: absolute;
@@ -261,13 +301,11 @@
       padding: clamp(40px, 9vw, 130px) clamp(20px, 7.6vw, 110px) clamp(60px, 7vw, 100px);
     }
 
-    /* H1 — always 3 lines via explicit <br> tags */
     .hero-headline {
       font-size: clamp(30px, 4.7vw, 68px);
       line-height: 1.05;
       font-weight: 600;
       color: var(--dark);
-      /* wide enough that no line wraps inside itself */
       max-width: min(90vw, 780px);
       margin-bottom: clamp(20px, 3.5vw, 50px);
     }
@@ -283,7 +321,6 @@
       margin-bottom: clamp(28px, 5vw, 72px);
     }
 
-    /* CTA buttons */
     .hero-btns {
       display: flex;
       gap: clamp(10px, 2vw, 28px);
@@ -350,51 +387,31 @@
     .buildwise-logo img { height: 100%; width: auto; display: block; }
 
     /* ═══════════════════════════════════════════
-       RESPONSIVE BREAKPOINTS
+       BREAKPOINTS
     ═══════════════════════════════════════════ */
 
-    /* Tablet — hide last two nav links */
+    /* Tablet: hide Over Ons + Contact */
     @media (max-width: 1024px) {
-      .nav-link:nth-child(3),
-      .nav-link:nth-child(4) { display: none; }
+      .nav-links > :nth-child(n+3) { display: none; }
     }
 
     /* Mobile */
     @media (max-width: 767px) {
       .site-header { padding-top: 0; }
       .header-tab  { display: none; }
-
       .header-nav-wrap { padding: 0; }
-
-      .header-nav {
-        border-radius: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,.08);
-      }
-
+      .header-nav { border-radius: 0; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
       .nav-links    { display: none; }
       .nav-cta-area { display: none; }
       .nav-toggle   { display: flex; }
-
       .nav-logo-area { flex: 1; }
-
-      .partner-bar {
-        padding: 0 20px;
-        gap: 20px;
-      }
-
+      .partner-bar { padding: 0 20px; gap: 20px; }
       .partner-bar .buildwise-logo:nth-child(3) { display: none; }
     }
 
     @media (max-width: 479px) {
-      .hero-btns {
-        flex-direction: column;
-        align-items: stretch;
-        max-width: 320px;
-      }
-
-      .btn-primary,
-      .btn-secondary { justify-content: center; }
-
+      .hero-btns { flex-direction: column; align-items: stretch; max-width: 320px; }
+      .btn-primary, .btn-secondary { justify-content: center; }
       .partner-bar .buildwise-logo:nth-child(2) { display: none; }
     }
   </style>
@@ -406,7 +423,7 @@
 ═══════════════════════════════════════════ -->
 <header class="site-header">
 
-  <!-- Dark info tab (peeks above nav) -->
+  <!-- Dark info tab -->
   <div class="header-tab">
     <div class="header-tab-items">
 
@@ -420,9 +437,9 @@
         <a href="mailto:info@laressolutions.com">info@laressolutions.com</a>
       </span>
 
-      <!-- Language chooser with flag -->
+      <!-- Language chooser — white down arrow -->
       <span class="htab-item htab-lang">
-        <img class="htab-flag" src="assets/flag-nl.png" alt="NL vlag">
+        <img class="htab-flag" src="assets/flag-nl.png" alt="NL">
         Nederlands
         <img class="htab-icon" src="assets/keyboard_arrow_down.svg" alt="">
       </span>
@@ -444,18 +461,29 @@
       </div>
 
       <div class="nav-links">
-        <a href="#" class="nav-link">
-          Oplossingen
-          <img src="assets/keyboard_arrow_down.svg" alt="">
-        </a>
-        <a href="#" class="nav-link">
-          Producten
-          <img src="assets/keyboard_arrow_down.svg" alt="">
-        </a>
+
+        <!-- Oplossingen — with dropdown -->
+        <div class="nav-link-group" id="grp-oplossingen">
+          <a href="#" class="nav-link" data-target="dd-oplossingen">
+            Oplossingen
+            <img class="nav-arrow" src="assets/keyboard_arrow_down.svg" alt="">
+          </a>
+        </div>
+
+        <!-- Producten — with dropdown -->
+        <div class="nav-link-group" id="grp-producten">
+          <a href="#" class="nav-link" data-target="dd-producten">
+            Producten
+            <img class="nav-arrow" src="assets/keyboard_arrow_down.svg" alt="">
+          </a>
+        </div>
+
         <a href="#" class="nav-link">Over Ons</a>
         <a href="#" class="nav-link">Contact</a>
+
       </div>
 
+      <!-- START NU — arrows pointing RIGHT -->
       <div class="nav-cta-area">
         <span class="nav-start">
           START NU
@@ -470,7 +498,23 @@
 
     </nav>
 
-    <!-- Mobile dropdown -->
+    <!-- Desktop dropdown: Oplossingen -->
+    <div class="nav-dd" id="dd-oplossingen">
+      <a href="#">Vochtbestrijding</a>
+      <a href="#">Metseltechniek</a>
+      <a href="#">Vloerafwerking</a>
+      <a href="#">Dakdichting</a>
+    </div>
+
+    <!-- Desktop dropdown: Producten -->
+    <div class="nav-dd" id="dd-producten">
+      <a href="#">MS111 Metselmortel</a>
+      <a href="#">Voegmortel</a>
+      <a href="#">Hechtmortel</a>
+      <a href="#">Sierpleisters</a>
+    </div>
+
+    <!-- Mobile menu -->
     <div class="mobile-menu" id="mobileMenu" role="navigation">
       <a href="#" class="mm-link">Oplossingen</a>
       <a href="#" class="mm-link">Producten</a>
@@ -488,27 +532,21 @@
 <section class="hero">
 
   <div class="hero-content">
-
-    <!-- H1: always 3 lines — explicit <br> controls each line break -->
     <h1 class="hero-headline">
       Producten en advies<br>
       voor <span class="accent">professionele<br>
       vochtbestrijding</span>
     </h1>
-
     <p class="hero-sub">
       Sinds 25 jaar het technisch klankbord van aannemers,
       architecten en studiebureaus met levering binnen 48&nbsp;u in heel België.
     </p>
-
     <div class="hero-btns">
       <button class="btn-primary">Vraag advies →</button>
       <button class="btn-secondary">Onze producten</button>
     </div>
-
   </div>
 
-  <!-- Partner logos -->
   <div class="partner-bar">
     <div class="buildwise-logo">
       <img src="assets/Group-1.svg" alt="Buildwise">
@@ -527,12 +565,56 @@
 </section>
 
 <script>
+/* ── mobile hamburger ── */
 const navToggle = document.getElementById('navToggle');
 const mobileMenu = document.getElementById('mobileMenu');
-
 navToggle.addEventListener('click', () => {
   const open = mobileMenu.classList.toggle('is-open');
   navToggle.setAttribute('aria-expanded', String(open));
+});
+
+/* ── desktop dropdowns ── */
+document.querySelectorAll('.nav-link[data-target]').forEach(link => {
+  const group  = link.closest('.nav-link-group');
+  const ddId   = link.dataset.target;
+  const dd     = document.getElementById(ddId);
+  const navWrap = link.closest('.header-nav-wrap');
+
+  function positionDD() {
+    const wrapRect = navWrap.getBoundingClientRect();
+    const linkRect = link.getBoundingClientRect();
+    dd.style.left = (linkRect.left - wrapRect.left) + 'px';
+  }
+
+  function open() {
+    // close any other open dropdown first
+    document.querySelectorAll('.nav-dd.is-open').forEach(el => {
+      if (el !== dd) el.classList.remove('is-open');
+    });
+    document.querySelectorAll('.nav-link-group.is-open').forEach(el => {
+      if (el !== group) el.classList.remove('is-open');
+    });
+    positionDD();
+    dd.classList.add('is-open');
+    group.classList.add('is-open');
+  }
+
+  function close() {
+    dd.classList.remove('is-open');
+    group.classList.remove('is-open');
+  }
+
+  link.addEventListener('mouseenter', open);
+  link.addEventListener('mouseleave', e => { if (!dd.contains(e.relatedTarget)) close(); });
+  dd.addEventListener('mouseleave',   e => { if (!link.contains(e.relatedTarget)) close(); });
+});
+
+/* close dropdowns on outside click */
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-link-group') && !e.target.closest('.nav-dd')) {
+    document.querySelectorAll('.nav-dd.is-open').forEach(el => el.classList.remove('is-open'));
+    document.querySelectorAll('.nav-link-group.is-open').forEach(el => el.classList.remove('is-open'));
+  }
 });
 </script>
 
