@@ -906,6 +906,7 @@ function makePileBag(posX, posY, posZ, rotX, rotY, rotZ, scale) {
   clone.scale.setScalar(scale);
   clone.position.set(posX, posY, posZ);
   clone.rotation.set(rotX, rotY, rotZ);
+  clone.visible = false; /* hidden until kelder section scrolls into view */
   scene.add(clone);
   return clone;
 }
@@ -1023,6 +1024,14 @@ function setupScrollAnimations() {
     opacity: 1, scale: 1,
     ease: 'power2.out', duration: 0.25
   }, 0.75);
+
+  /* Pile bags — reveal when kelder section enters viewport, hide when leaving back */
+  ScrollTrigger.create({
+    trigger: '#kelder-section',
+    start: 'top bottom',
+    onEnter:     () => pileBags.forEach(b => b.visible = true),
+    onLeaveBack: () => pileBags.forEach(b => b.visible = false),
+  });
 
   /* 2 — Settle: micro-bounce after landing */
   gsap.timeline({
