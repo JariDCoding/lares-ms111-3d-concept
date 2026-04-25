@@ -1227,8 +1227,8 @@ function applyHeroBasementBlend(obj, blend) {
     const mats = Array.isArray(child.material) ? child.material : [child.material];
     mats.forEach(mat => {
       if (mat.color && mat.userData.originalColor) {
-        const target = new THREE.Color(0xd18445);
-        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.22);
+        const target = new THREE.Color(0xb05a28);
+        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.55);
       }
       if (mat.roughness !== undefined) {
         const orig = mat.userData.originalRoughness ?? mat.roughness;
@@ -1622,8 +1622,8 @@ function setupScrollAnimations() {
     ease: FALL.ease3, duration: FALL.phase3Duration,
   });
 
-  /* Lighting + basementBlend — starts exactly at phase 3 so darkening is the cue
-     that the bag has stopped shrinking and is now approaching the floor. */
+  /* Lighting + basementBlend — starts at section entry (position 0) so colour
+     shift begins the moment the section enters the viewport. */
   const phase3Start = FALL.phase1Duration + FALL.phase2Duration;
   fallTL.to(state, {
     ambientI:      FALL_LIGHTS.ambientI,
@@ -1632,8 +1632,8 @@ function setupScrollAnimations() {
     toneExp:       FALL_LIGHTS.toneExp,
     warmTint:      FALL_LIGHTS.warmTint,
     basementBlend: 1,
-    ease: 'power2.in', duration: FALL.phase3Duration,
-  }, phase3Start);
+    ease: 'power1.inOut', duration: 0.92,
+  }, 0);
 
   /* CSS contact shadow — reveals only in phase 3 (bag approaching floor) */
   fallTL.to('.bag-contact-shadow', {
