@@ -1022,21 +1022,21 @@ const BASEMENT_FLOOR = {
    TUNE ORDER: landed first (must match hero bag crossfade), then bag1/bag2. */
 const PILE = {
   bag1: {
-    position: { x:  1.10, y: 0, z:  2.50 },
+    position: { x:  1.10, y: 0, z:  2.10 },
     rotation: { x: -1.54, y: -0.30, z:  0.10 },
     scale:    0.48,
   },
   bag2: {
-    position: { x:  1.38, y: 0, z:  2.28 },
+    position: { x:  1.38, y: 0, z:  1.92 },
     rotation: { x: -1.50, y:  0.50, z: -0.12 },
     scale:    0.44,
   },
   landed: {
     /* Initial clone pose — immediately overridden by placeOnFloorFromScreenPct().
        rotation kept in sync with BASEMENT_LANDED_TARGET.rotation for reference. */
-    position: { x:  1.10, y: 0, z:  2.70 },
+    position: { x:  1.10, y: 0, z:  2.55 },
     rotation: { x: -1.56, y: -0.22, z:  0.08 },
-    scale:    0.50,
+    scale:    0.55,
   },
 };
 
@@ -1046,8 +1046,8 @@ const PILE = {
    rotation MUST match LANDING.rotation below for a seamless canvas-1↔2 swap. */
 const BASEMENT_LANDED_TARGET = {
   xPct:     0.70,
-  yPct:     0.80,
-  scale:    0.50,
+  yPct:     0.72,
+  scale:    0.55,
   rotation: { x: -1.56, y: -0.22, z: 0.08 },
 };
 
@@ -1395,7 +1395,8 @@ function initBasementScene(gltf) {
   }
 
   /* Clone bags: deep-clone materials (so opacity is independent per instance),
-     apply shadow flags, apply basement tint, then seat on floor. */
+     apply shadow flags, then seat on floor.  No material tint — bag keeps its
+     original textures/labels; lighting alone provides the basement atmosphere. */
   function placeBag(conf) {
     const bag = gltf.scene.clone(true);
     deepCloneMaterials(bag);           /* own material copies — opacity is independent */
@@ -1405,7 +1406,6 @@ function initBasementScene(gltf) {
     bag.traverse(child => {
       if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
     });
-    applyBasementMaterialTint(bag);
     basementScene.add(bag);
     groundObjectOnFloor(bag, BASEMENT_FLOOR.y);
     return bag;
@@ -1630,7 +1630,6 @@ function setupScrollAnimations() {
      that the bag has stopped shrinking and is now approaching the floor. */
   const phase3Start = FALL.phase1Duration + FALL.phase2Duration;
   fallTL.to(state, {
-    basementBlend: 1,
     ambientI:      FALL_LIGHTS.ambientI,
     keyI:          FALL_LIGHTS.keyI,
     warmI:         FALL_LIGHTS.warmI,
@@ -1667,9 +1666,6 @@ function loopBoth() {
   const heroAlpha = cf < 0.995 ? 1 - cf : 0;
   mainBag.visible = heroAlpha > 0.01;
   if (mainBag.visible) setObjectOpacity(mainBag, heroAlpha);
-
-  /* Gradually blend mainBag materials toward basement look as bag flies down */
-  if (state.basementBlend > 0) applyHeroBasementBlend(mainBag, state.basementBlend);
 
   /* ── Canvas 2: landedBag — invisible until just before transition, then fades in.
      Static bags (bag1/bag2) are always visible once created. */
