@@ -743,10 +743,10 @@ renderer.shadowMap.enabled = true;
 /* Scene */
 const scene = new THREE.Scene();
 
-/* Camera — positioned to show model lower in the canvas */
+/* Camera — raised + aimed down so model sits in the lower half */
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100);
-camera.position.set(0.3, 1.2, 3.8);
-camera.lookAt(0, -0.3, 0);
+camera.position.set(0.3, 2.2, 3.8);
+camera.lookAt(0, -0.9, 0);
 
 /* Studio lighting */
 const ambient = new THREE.AmbientLight(0xfff8f0, 0.7);
@@ -819,7 +819,7 @@ loader.load(
     });
 
     scene.add(model);
-    render();
+    startFloat();
 
     // Complete loading UI
     bar.style.width   = '100%';
@@ -845,8 +845,23 @@ loader.load(
   }
 );
 
-/* Render helper — called after model loads */
-function render() {
+/* Floating animation — starts once model is in scene */
+const clock = new THREE.Clock();
+let baseY = 0;
+
+function startFloat() {
+  baseY = model.position.y;
+  clock.start();
+  loop();
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  const t = clock.getElapsedTime();
+  // Gentle sine bob: ±0.06 units over ~3 s
+  model.position.y = baseY + Math.sin(t * 1.2) * 0.06;
+  // Very subtle slow sway on x
+  model.rotation.z = Math.sin(t * 0.5) * 0.012;
   renderer.render(scene, camera);
 }
 </script>
