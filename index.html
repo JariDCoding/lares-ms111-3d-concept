@@ -533,7 +533,7 @@
     .bag-contact-shadow {
       position: absolute;
       right: clamp(170px, 22vw, 390px);
-      bottom: clamp(65px, 10vh, 140px);
+      bottom: clamp(160px, 32vh, 320px);
       width: clamp(200px, 20vw, 340px);
       height: clamp(36px, 4.5vw, 72px);
       border-radius: 999px;
@@ -1018,14 +1018,14 @@ const FALL = {
   phase1Rot: { x: -0.78, y: -0.52, z:  0.06 }, /* tip forward, slight lean */
   midPos:    { x:  1.20, y: -0.18, z:  0.06 }, /* overwritten by computeFallMidPoint() */
   midRot:    { x: -1.35, y: -0.38, z:  0.08 }, /* nearly flat */
-  midScale:  0.52,
+  midScale:  0.72,
 
   ease1: 'power1.in',
   ease2: 'power1.inOut',  /* constant gravity — no mid-air hang */
   ease3: 'power2.out',
 
   scrollStart: 'top bottom',
-  scrollEnd:   'center center',
+  scrollEnd:   '35% center',
   scrub:       1.5,
 };
 
