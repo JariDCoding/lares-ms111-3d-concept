@@ -1046,7 +1046,7 @@ const PILE = {
    rotation MUST match LANDING.rotation below for a seamless canvas-1↔2 swap. */
 const BASEMENT_LANDED_TARGET = {
   xPct:     0.70,
-  yPct:     0.72,
+  yPct:     0.80,
   scale:    0.50,
   rotation: { x: -1.56, y: -0.22, z: 0.08 },
 };
@@ -1618,16 +1618,17 @@ function setupScrollAnimations() {
     ease: FALL.ease2, duration: FALL.phase2Duration,
   });
 
-  /* Phase 3: approach floor — ends at auto-computed LANDING position */
+  /* Phase 3: approach floor — scale is FROZEN (stops shrinking at phase 2 end).
+     Only position and rotation animate; darkness/colour shift drives the landing feel. */
   fallTL.to(state, {
     posX: LANDING.position.x, posY: LANDING.position.y, posZ: LANDING.position.z,
     rotX: LANDING.rotation.x, rotY: LANDING.rotation.y, rotZ: LANDING.rotation.z,
-    scaleS: heroScale * LANDING.scaleRatio,
     ease: FALL.ease3, duration: FALL.phase3Duration,
   });
 
-  /* Lighting + basementBlend — starts at 25% so color shifts while bag is mid-air.
-     The bag should look warmer/darker before it lands, not only after. */
+  /* Lighting + basementBlend — starts exactly at phase 3 so darkening is the cue
+     that the bag has stopped shrinking and is now approaching the floor. */
+  const phase3Start = FALL.phase1Duration + FALL.phase2Duration;
   fallTL.to(state, {
     basementBlend: 1,
     ambientI:      FALL_LIGHTS.ambientI,
@@ -1635,11 +1636,10 @@ function setupScrollAnimations() {
     warmI:         FALL_LIGHTS.warmI,
     toneExp:       FALL_LIGHTS.toneExp,
     warmTint:      FALL_LIGHTS.warmTint,
-    ease: 'power1.inOut', duration: 0.65,
-  }, 0.25);  /* starts 25% into the timeline */
+    ease: 'power2.in', duration: FALL.phase3Duration,
+  }, phase3Start);
 
   /* CSS contact shadow — reveals only in phase 3 (bag approaching floor) */
-  const phase3Start = FALL.phase1Duration + FALL.phase2Duration;
   fallTL.to('.bag-contact-shadow', {
     opacity: 0.78, scale: 1,
     ease: 'power2.out', duration: FALL.phase3Duration,
