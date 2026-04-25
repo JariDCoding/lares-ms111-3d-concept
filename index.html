@@ -1032,8 +1032,8 @@ const FALL = {
 /* Canvas 1: final landing pose — position.x/y + scaleRatio are AUTO-COMPUTED.
    rotation MUST match BASEMENT_LANDED_TARGET.rotation so the swap is rotation-seamless. */
 const LANDING = {
-  position:   { x: 1.05, y: -0.64, z:  0.10 },  /* y raised 5% viewport height vs -0.80 */
-  rotation:   { x: -1.05, y: -0.45, z:  0.06 },  /* ~60° from flat — label visible on landing */
+  position:   { x: 1.05, y: -0.64, z:  0.10 },
+  rotation:   { x: -0.88, y: -0.42, z:  0.22 },  /* more roll: one side propped up on pile */
   scaleRatio: 0.50,
 };
 
@@ -1116,7 +1116,8 @@ const HERO_LIGHTS = {
 /* Canvas 1: lighting targets tweened as bag falls into basement.
    Starts at 25% of fall so lighting shifts before the bag reaches the floor. */
 const FALL_LIGHTS = {
-  ambientI: 0.22, keyI: 0.88, warmI: 0.80, toneExp: 0.80, warmTint: 0.90,
+  ambientI: 0.22, keyI: 0.55, warmI: 1.10, toneExp: 0.80, warmTint: 0.90,
+  keyLightX: -3.0,
 };
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -1210,9 +1211,10 @@ const state = {
   /* 0→1: crossfade between canvas-1 hero bag and canvas-2 landed bag.
      Only tweened in the last ~4.5% of the fall. */
   crossfade:     0,
-  /* 0→1: gradually blends mainBag materials toward basement look (rougher, warmer, dimmer).
-     Starts animating at 25% of fall so lighting shifts while bag is flying over the section. */
+  /* 0→1: gradually blends mainBag materials toward basement look (rougher, warmer, dimmer). */
   basementBlend: 0,
+  /* keyLight x-position — tweened from right-of-scene (4) to left (-3) to match basement photo */
+  keyLightX:     4.0,
 };
 
 /* Gives every mesh in a bag its own cloned material so opacity can be set independently. */
@@ -1615,7 +1617,7 @@ function setupScrollAnimations() {
       scaleS: heroScale * LANDING.scaleRatio, floatAmp: 0,
       ambientI: FALL_LIGHTS.ambientI, keyI: FALL_LIGHTS.keyI,
       warmI: FALL_LIGHTS.warmI, toneExp: FALL_LIGHTS.toneExp,
-      warmTint: FALL_LIGHTS.warmTint,
+      warmTint: FALL_LIGHTS.warmTint, keyLightX: FALL_LIGHTS.keyLightX,
     });
     if (mainBag)   mainBag.visible   = false;
     if (landedBag) landedBag.visible = true;
@@ -1669,6 +1671,7 @@ function setupScrollAnimations() {
     warmI:         FALL_LIGHTS.warmI,
     toneExp:       FALL_LIGHTS.toneExp,
     warmTint:      FALL_LIGHTS.warmTint,
+    keyLightX:     FALL_LIGHTS.keyLightX,
     basementBlend: 1,
     ease: 'power1.inOut', duration: 0.92,
   }, 0);
@@ -1706,9 +1709,12 @@ function loopBoth() {
     state.rotY,
     state.rotZ + Math.sin(t * 0.65) * 0.025 * state.floatAmp
   );
-  mainBag.scale.setScalar(state.scaleS);
+  /* Slight Y-squish as bag settles onto pile — simulates drape over bags below */
+  const squishY = 1.0 - state.basementBlend * 0.14;
+  mainBag.scale.set(state.scaleS, state.scaleS * squishY, state.scaleS);
   ambientLight.intensity       = state.ambientI;
   keyLight.intensity           = state.keyI;
+  keyLight.position.setX(state.keyLightX);
   warmLight.intensity          = state.warmI;
   renderer.toneMappingExposure = state.toneExp;
   keyLight.color.setRGB(1.0, 1.0 - state.warmTint * 0.10, 1.0 - state.warmTint * 0.22);
