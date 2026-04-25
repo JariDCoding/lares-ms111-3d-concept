@@ -596,7 +596,7 @@
       overflow: hidden;
       background-image: url('assets/basement.png');
       background-size: cover;
-      background-position: center 40%;
+      background-position: center 80%;
     }
 
     /* Left dark gradient — makes text readable over the photo */
@@ -992,10 +992,10 @@ const FALL = {
 };
 
 /* Canvas 1: final landing pose — position.x/y + scaleRatio are AUTO-COMPUTED.
-   rotation MUST match PILE.landed.rotation so the swap is rotation-seamless. */
+   rotation MUST match BASEMENT_LANDED_TARGET.rotation so the swap is rotation-seamless. */
 const LANDING = {
   position:   { x: 1.05, y: -0.80, z:  0.10 },
-  rotation:   { x: -1.52, y: -0.38, z:  0.12 }, /* identical to PILE.landed.rotation */
+  rotation:   { x: -1.56, y: -0.22, z:  0.08 }, /* identical to BASEMENT_LANDED_TARGET.rotation */
   scaleRatio: 0.50,
 };
 
@@ -1032,13 +1032,23 @@ const PILE = {
     scale:    0.45,
   },
   landed: {
-    /* rotation MUST match LANDING.rotation above.
-       computeLandingFromPile() projects world pos → screen → hero cam → auto-sets LANDING.position.
-       Increase z → closer to camera (lower in frame).  Increase x → more to the right. */
+    /* Initial clone pose — immediately overridden by placeOnFloorFromScreenPct().
+       rotation kept in sync with BASEMENT_LANDED_TARGET.rotation for reference. */
     position: { x:  0.54, y: 0, z:  2.22 },
-    rotation: { x: -1.52, y: -0.38, z:  0.12 },
-    scale:    0.54,  /* ~20% bigger than previous 0.45 */
+    rotation: { x: -1.56, y: -0.22, z:  0.08 },
+    scale:    0.54,
   },
+};
+
+/* Canvas 2: where landedBag appears — expressed as fractions of the basement canvas
+   (xPct=0 left, 1 right; yPct=0 top, 1 bottom).  The function placeOnFloorFromScreenPct()
+   raycasts through this point, intersects the floor plane, and places landedBag there.
+   rotation MUST match LANDING.rotation below for a seamless canvas-1↔2 swap. */
+const BASEMENT_LANDED_TARGET = {
+  xPct:     0.63,
+  yPct:     0.66,
+  scale:    0.54,
+  rotation: { x: -1.56, y: -0.22, z: 0.08 },
 };
 
 /* Canvas 2: basement lighting — damp, dark, warm.
@@ -1272,6 +1282,37 @@ function applyBasementMaterialTint(bag) {
   });
 }
 
+/* Projects xPct/yPct (0–1 fractions of the basement canvas) through basementCamera,
+   intersects the horizontal floor plane at BASEMENT_FLOOR.y, and places bag at
+   that world-space point.  Then applies conf.rotation, conf.scale, and calls
+   groundObjectOnFloor so the bag bottom sits exactly on the floor. */
+function placeOnFloorFromScreenPct(bag, conf) {
+  if (!basementCamera || !bag) return;
+
+  /* Canvas percentages → NDC (Three.js: x right=+1, y up=+1) */
+  const ndcX =  conf.xPct * 2 - 1;
+  const ndcY = -(conf.yPct * 2 - 1);
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), basementCamera);
+
+  /* Horizontal plane at floor level — normal pointing up */
+  const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -BASEMENT_FLOOR.y);
+  const hit = new THREE.Vector3();
+  raycaster.ray.intersectPlane(floorPlane, hit);
+
+  if (hit && hit.lengthSq() > 0) {
+    bag.position.x = hit.x;
+    bag.position.z = hit.z;
+    bag.position.y = BASEMENT_FLOOR.y;
+  }
+
+  bag.rotation.set(conf.rotation.x, conf.rotation.y, conf.rotation.z);
+  bag.scale.setScalar(heroScale * conf.scale);
+
+  groundObjectOnFloor(bag, BASEMENT_FLOOR.y);
+}
+
 /* ── initBasementScene ──────────────────────────────────────────
    Creates the independent canvas 2 renderer, scene, camera, floor
    plane, and cloned bags.  Called once after heroScale is known. */
@@ -1373,6 +1414,9 @@ function initBasementScene(gltf) {
   basementBag1 = placeBag(PILE.bag1);
   basementBag2 = placeBag(PILE.bag2);
   landedBag    = placeBag(PILE.landed);
+  /* Override position/rotation/scale using screen-percentage raycast so calibration
+     is done by specifying a canvas fraction rather than raw world coordinates. */
+  placeOnFloorFromScreenPct(landedBag, BASEMENT_LANDED_TARGET);
   landedBag.visible = false;   /* shown only when mainBag hides at transition */
 
   resizeBasementCanvas();
