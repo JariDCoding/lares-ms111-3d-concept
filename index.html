@@ -660,6 +660,44 @@
        BREAKPOINTS
     ═══════════════════════════════════════════ */
 
+    /* Desktop lock — fix header to its 1440 px appearance on all desktop widths */
+    @media (min-width: 768px) {
+      :root { --nav-h: 82px; }
+
+      .header-tab {
+        margin-left: 371px;
+        margin-right: 49px;
+        height: 36px;
+        padding: 0 65px;
+      }
+      .header-tab-items,
+      .header-tab-right {
+        gap: 36px;
+        font-size: 12.5px;
+      }
+      .htab-icon { width: 15px; height: 15px; }
+
+      .header-nav-wrap { padding: 0 49px; }
+      .header-nav      { border-radius: 50px 0 0 50px; }
+      .nav-logo-area   { padding: 0 48px; border-radius: 50px 0 0 50px; }
+      .nav-logo        { width: 144px; }
+      .nav-links {
+        gap: 36px;
+        padding: 0 40px;
+        clip-path: polygon(17px 0%, 100% 0%, 100% 100%, 0% 100%);
+      }
+      .nav-link            { font-size: 18px; }
+      .nav-link .nav-arrow { width: 17px; height: 17px; }
+      .nav-cta-area        { padding: 0 30px; }
+      .nav-start {
+        height: 44px;
+        padding: 0 22px;
+        font-size: 13.5px;
+      }
+      .nav-start img { width: 17px; height: 17px; }
+      .nav-dd a      { font-size: 14px; }
+    }
+
     /* Tablet: hide Over Ons + Contact */
     @media (max-width: 1024px) {
       .nav-links > :nth-child(n+3) { display: none; }
@@ -979,7 +1017,7 @@ const FALL = {
 
   phase1Rot: { x: -0.78, y: -0.52, z:  0.06 }, /* tip forward, slight lean */
   midPos:    { x:  1.20, y: -0.18, z:  0.06 }, /* overwritten by computeFallMidPoint() */
-  midRot:    { x: -1.25, y: -0.42, z:  0.13 }, /* nearly flat */
+  midRot:    { x: -1.35, y: -0.38, z:  0.08 }, /* nearly flat */
   midScale:  0.74,
 
   ease1: 'power1.in',
@@ -995,7 +1033,7 @@ const FALL = {
    rotation MUST match BASEMENT_LANDED_TARGET.rotation so the swap is rotation-seamless. */
 const LANDING = {
   position:   { x: 1.05, y: -0.80, z:  0.10 },
-  rotation:   { x: -1.56, y: -0.22, z:  0.08 }, /* identical to BASEMENT_LANDED_TARGET.rotation */
+  rotation:   { x: -1.57, y: -0.28, z:  0.04 }, /* nearly flat (≈-π/2), yaw matches pile */
   scaleRatio: 0.50,
 };
 
@@ -1022,20 +1060,20 @@ const BASEMENT_FLOOR = {
    TUNE ORDER: landed first (must match hero bag crossfade), then bag1/bag2. */
 const PILE = {
   bag1: {
-    position: { x:  1.10, y: 0, z:  2.42 },
+    position: { x:  1.10, y: 0, z:  2.66 },
     rotation: { x: -1.54, y: -0.30, z:  0.10 },
-    scale:    0.48,
+    scale:    0.43,
   },
   bag2: {
-    position: { x:  1.38, y: 0, z:  2.24 },
+    position: { x:  1.38, y: 0, z:  2.46 },
     rotation: { x: -1.50, y:  0.50, z: -0.12 },
-    scale:    0.44,
+    scale:    0.40,
   },
   landed: {
     /* Initial clone pose — immediately overridden by placeOnFloorFromScreenPct().
        rotation kept in sync with BASEMENT_LANDED_TARGET.rotation for reference. */
     position: { x:  1.10, y: 0, z:  2.55 },
-    rotation: { x: -1.56, y: -0.22, z:  0.08 },
+    rotation: { x: -1.57, y: -0.28, z:  0.04 },
     scale:    0.55,
   },
 };
@@ -1048,7 +1086,7 @@ const BASEMENT_LANDED_TARGET = {
   xPct:     0.70,
   yPct:     0.72,
   scale:    0.55,
-  rotation: { x: -1.56, y: -0.22, z: 0.08 },
+  rotation: { x: -1.57, y: -0.28, z: 0.04 },
 };
 
 /* Canvas 2: basement lighting — damp, dark, warm.
