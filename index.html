@@ -473,13 +473,28 @@
       filter: blur(28px);
       opacity: 0;
       transform: scale(0.5);
-      z-index: 3;
+      z-index: 4; /* above #basement-canvas (z:3) */
       pointer-events: none;
       transition: none;
     }
 
     @media (max-width: 767px) {
       #hero-canvas { display: none; }
+    }
+
+    /* Canvas 2: basement WebGL overlay — lives inside #kelder-section */
+    #basement-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3; /* above ::before (z:1) and ::after top-fade (z:2), below shadow (z:4) and kelder-text (z:5) */
+      display: block;
+    }
+
+    @media (max-width: 767px) {
+      #basement-canvas { display: none; }
     }
 
     /* ═══════════════════════════════════════════
@@ -776,6 +791,7 @@
 <!-- ══ KELDERDICHTING ══════════════════════════════════════════ -->
 <div style="background:#fff; height: clamp(24px, 3vw, 48px);"></div>
 <section class="kelder-section" id="kelder-section">
+  <canvas id="basement-canvas"></canvas>
   <div class="kelder-text">
     <span class="kelder-count">01 / 04</span>
     <h2 class="kelder-title">Kelderdichting</h2>
@@ -848,69 +864,115 @@ const { gsap, ScrollTrigger } = window;
 gsap.registerPlugin(ScrollTrigger);
 
 /* ════════════════════════════════════════════════════════════════
-   TUNING CONSTANTS — adjust everything here
+   TUNING CONSTANTS — only edit values here, no logic changes needed.
 
-   HERO_BAG: starting offset after GLB auto-centering.
-   MAIN_BAG_TWIRL: controls the 3-phase fall animation.
-     departRot  = rotation at end of Phase 1 (departure lean)
-     midPos     = world position at end of Phase 2 (midair peak)
-     midRot     = rotation at end of Phase 2 (tumbling pose)
-     midScale   = bag scale during fall (fraction of heroScale)
-   MAIN_BAG_LANDING: final resting pose on top of the pile.
-   BASEMENT_BAG_ANCHORS: page-anchored small bags.
-     xRatio/yRatio = fraction of #kelder-section rect (0=top-left, 1=bottom-right)
-   BASEMENT_LIGHTING: light values tweened to when bag enters basement.
-     toneExp  = renderer.toneMappingExposure (lower = darker overall)
-     warmTint = 0–1, shifts keyLight from white toward amber
+   HERO_BAG      starting pose of the big bag in the hero section.
+   FALL          3-phase fall animation; phase durations must sum to 1.0.
+   LANDING       final pose of mainBag in canvas 1 at fall end.
+                 Tune PILE.landed below to visually match this.
+   BASEMENT_CAMERA  independent camera for canvas 2 (basement overlay).
+                 Tune position/lookAt until floor recedes at same
+                 angle as the basement photo's concrete.
+   BASEMENT_FLOOR   invisible reference plane for bag placement.
+   PILE          bag1/bag2 = static pile; landed = fallen hero bag.
+   BASEMENT_LIGHTS  warm/dim lighting for canvas 2.
+   HERO_LIGHTS   starting light values for canvas 1.
+   FALL_LIGHTS   canvas 1 light targets as bag enters basement.
+   USE_3D_BASEMENT  set false to swap canvas 2 for a PNG fallback.
 ════════════════════════════════════════════════════════════════ */
 
+const USE_3D_BASEMENT = true; /* false → show #basement-pile-fallback img instead */
+
+/* Canvas 1: hero bag starting pose after GLB auto-centering */
 const HERO_BAG = {
   offsetX:   1.30,
-  offsetY:  -0.40,
+  offsetY:  -0.72,  /* 10% lower than before (was -0.40; ~0.32 world units ≈ 10% viewport height) */
   rotation: { x: 0.08, y: -0.55, z: -0.13 },
 };
 
-const MAIN_BAG_TWIRL = {
-  /* Phase 1: bag tips forward — nose-dives toward floor */
-  departRot: { x: -1.05, y: -0.60, z:  0.10 },
-  /* Phase 2: nearly flat, dropping fast */
-  midPos:    { x:  1.15, y: -0.35, z:  0.06 },
-  midRot:    { x: -1.42, y: -0.45, z:  0.08 },
-  midScale:  0.82,
+/* Canvas 1: 3-phase fall — phase durations must sum to 1.0 */
+const FALL = {
+  phase1Duration: 0.35,
+  phase2Duration: 0.37,
+  phase3Duration: 0.28,
+
+  phase1Rot: { x: -1.05, y: -0.60, z:  0.10 }, /* end of phase 1: bag tips forward */
+  midPos:    { x:  1.15, y: -0.35, z:  0.06 }, /* end of phase 2: mid-air position */
+  midRot:    { x: -1.42, y: -0.45, z:  0.08 }, /* end of phase 2: nearly flat */
+  midScale:  0.82,                               /* bag scale fraction during fall */
+
+  ease1: 'power1.in',
+  ease2: 'power2.in',
+  ease3: 'power3.out',
+
+  scrollStart: 'top bottom',
+  scrollEnd:   'center center',
+  scrub:       1.4,
 };
 
-const MAIN_BAG_LANDING = {
+/* Canvas 1: final landing pose — tune PILE.landed to match this visually */
+const LANDING = {
   position:   { x: 1.08, y: -0.76, z:  0.10 },
   rotation:   { x: -1.35, y: -0.42, z:  0.18 },
   scaleRatio: 0.58,
 };
 
-const BASEMENT_BAG_ANCHORS = {
+/* Canvas 2: camera — tune until floor depth matches basement photo perspective */
+const BASEMENT_CAMERA = {
+  fov:      50,
+  near:     0.01,
+  far:      100,
+  position: { x: 0,   y: 3.5, z: 5.0 },
+  lookAt:   { x: 0,   y: 0,   z: 0   },
+};
+
+/* Canvas 2: invisible floor plane (reference only, never rendered) */
+const BASEMENT_FLOOR = {
+  y:    0,  /* floor Y in scene 2 world space */
+  size: 8,  /* plane width × depth in world units */
+};
+
+/* Canvas 2: bag world positions — calibrate in this order: bag1 → bag2 → landed */
+const PILE = {
   bag1: {
-    xRatio:   0.65,
-    yRatio:   0.58,
-    z:        0.04,
-    scale:    1.00,  /* 2× previous — lying flat on floor */
+    position: { x:  0.35, y: 0.05, z:  0.10 },
     rotation: { x: -1.54, y: -0.40, z:  0.18 },
+    scale:    0.90,
   },
   bag2: {
-    xRatio:   0.71,
-    yRatio:   0.62,
-    z:        0.08,
-    scale:    0.96,  /* slightly smaller, half-overlapping bag1 */
+    position: { x:  0.60, y: 0.05, z:  0.20 },
     rotation: { x: -1.50, y:  0.55, z: -0.12 },
+    scale:    0.86,
+  },
+  landed: {
+    /* Tune so it visually matches where mainBag sits in canvas 1 at scroll end */
+    position: { x:  0.20, y: 0.08, z:  0.30 },
+    rotation: { x: -1.35, y: -0.42, z:  0.18 },
+    scale:    0.85,
   },
 };
 
-/* Basement lighting — tweened to as mainBag falls into the basement.
-   Lower toneExp/ambientI = darker overall.  Higher warmI/warmTint = warmer amber.
-   Raise keyI if bags look too dark; raise warmTint for more amber key. */
-const BASEMENT_LIGHTING = {
-  ambientI: 0.30,
-  keyI:     1.30,
-  warmI:    0.95,
-  toneExp:  0.96,   /* renderer.toneMappingExposure */
-  warmTint: 1.0,    /* 0 = white key light, 1 = warm amber key */
+/* Canvas 2: basement lighting (warm, dim — matches wet concrete photo) */
+const BASEMENT_LIGHTS = {
+  ambientColor: 0xfff8f0,
+  ambientI:     0.40,
+  keyColor:     0xffd5a0,
+  keyPos:       { x: 3, y: 5, z: 4 },
+  keyI:         1.50,
+  warmColor:    0xff9944,
+  warmPos:      { x: -2, y: 1, z: 3 },
+  warmI:        0.80,
+  toneExp:      0.96,
+};
+
+/* Canvas 1: hero lighting starting values */
+const HERO_LIGHTS = {
+  ambientI: 0.7, keyI: 2.5, warmI: 0.0, toneExp: 1.30, warmTint: 0.0,
+};
+
+/* Canvas 1: lighting targets tweened as bag falls into basement */
+const FALL_LIGHTS = {
+  ambientI: 0.30, keyI: 1.30, warmI: 0.95, toneExp: 0.96, warmTint: 1.0,
 };
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -919,7 +981,6 @@ const canvas = document.getElementById('hero-canvas');
 const bar    = document.getElementById('loading-bar');
 const label  = document.getElementById('loading-label');
 const screen = document.getElementById('loading-screen');
-let kelderSection = null;
 
 /* ── Renderer ── */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -933,7 +994,7 @@ const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100);
 camera.position.set(0, 0.2, 4.2);
 camera.lookAt(0, -0.15, 0);
-camera.updateMatrixWorld();  /* ensure matrices are ready before first screenToWorld call */
+camera.updateMatrixWorld();
 
 /* ── Lights ── */
 const ambientLight = new THREE.AmbientLight(0xfff8f0, 0.7);
@@ -961,21 +1022,31 @@ scene.add(warmLight);
 
 /* ── Resize ── */
 function resize() {
+  /* Canvas 1 — hero scene (viewport-fixed) */
   const w = window.innerWidth;
   const h = window.innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
+  /* Canvas 2 — basement scene (sized to section) */
+  resizeBasementCanvas();
 }
 window.addEventListener('resize', resize);
 resize();
 
-/* ── Bag objects ── */
-let mainBag      = null;   /* hero product bag — animated by GSAP scroll */
-let basementBag1 = null;   /* static pile bag  — page-anchored to #kelder-section */
-let basementBag2 = null;   /* static pile bag  — page-anchored to #kelder-section */
+/* ── Objects ── */
+let mainBag      = null;   /* canvas 1 — hero bag (falls, then hides at transition) */
 let heroScale    = 1.0;
+
+/* Canvas 2 objects — created by initBasementScene() */
+let basementRenderer = null;
+let basementScene    = null;
+let basementCamera   = null;
+let basementBag1     = null;
+let basementBag2     = null;
+let landedBag        = null;   /* hero bag after landing — starts invisible */
+
 const clock = new THREE.Clock();
 
 /* GSAP state proxy for mainBag — GSAP writes, render loop reads.
@@ -985,68 +1056,97 @@ const state = {
   rotX: HERO_BAG.rotation.x,
   rotY: HERO_BAG.rotation.y,
   rotZ: HERO_BAG.rotation.z,
-  scaleS: 1.0,
+  scaleS:   1.0,
   floatAmp: 1,
-  ambientI: 0.7, keyI: 2.5, warmI: 0,
-  toneExp:  1.30,
-  warmTint: 0,
+  ambientI: HERO_LIGHTS.ambientI,
+  keyI:     HERO_LIGHTS.keyI,
+  warmI:    HERO_LIGHTS.warmI,
+  toneExp:  HERO_LIGHTS.toneExp,
+  warmTint: HERO_LIGHTS.warmTint,
 };
 
-/* ── screenToWorld ────────────────────────────────────────────────
-   Converts a viewport pixel position (screenX, screenY) into a Three.js
-   world-space Vector3 lying on the plane at world Z = targetZ.
+/* ── initBasementScene ──────────────────────────────────────────
+   Creates the independent canvas 2 renderer, scene, camera, floor
+   plane, and cloned bags.  Called once after heroScale is known. */
+function initBasementScene(gltf) {
+  if (!USE_3D_BASEMENT) return;
 
-   How it works:
-   1. Convert pixel coords to NDC (−1…+1 range).
-   2. Unproject through the camera's inverse matrices → world-space ray point.
-   3. Subtract camera position → normalised ray direction.
-   4. Walk along that ray until we hit world Z = targetZ.
+  const bCanvas = document.getElementById('basement-canvas');
+  basementRenderer = new THREE.WebGLRenderer({ canvas: bCanvas, antialias: true, alpha: true });
+  basementRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  basementRenderer.outputColorSpace   = THREE.SRGBColorSpace;
+  basementRenderer.toneMapping        = THREE.ACESFilmicToneMapping;
+  basementRenderer.toneMappingExposure = BASEMENT_LIGHTS.toneExp;
 
-   This is the only place viewport ↔ world conversion happens.
-   All page-anchored positioning goes through this function. */
-function screenToWorld(screenX, screenY, targetZ) {
-  const ndc = new THREE.Vector3(
-    (screenX / window.innerWidth)  *  2 - 1,
-    (screenY / window.innerHeight) * -2 + 1,
-    0.5
+  basementScene = new THREE.Scene();
+
+  /* Camera — tune BASEMENT_CAMERA constants until floor depth
+     matches the perspective of the basement photo */
+  const kelderEl = document.getElementById('kelder-section');
+  const w = kelderEl.offsetWidth  || window.innerWidth;
+  const h = kelderEl.offsetHeight || 600;
+  basementCamera = new THREE.PerspectiveCamera(
+    BASEMENT_CAMERA.fov, w / h, BASEMENT_CAMERA.near, BASEMENT_CAMERA.far
   );
-  ndc.unproject(camera);
-  const dir  = ndc.sub(camera.position).normalize();
-  const dist = (targetZ - camera.position.z) / dir.z;
-  return camera.position.clone().add(dir.multiplyScalar(dist));
+  basementCamera.position.set(
+    BASEMENT_CAMERA.position.x,
+    BASEMENT_CAMERA.position.y,
+    BASEMENT_CAMERA.position.z
+  );
+  basementCamera.lookAt(
+    BASEMENT_CAMERA.lookAt.x,
+    BASEMENT_CAMERA.lookAt.y,
+    BASEMENT_CAMERA.lookAt.z
+  );
+  basementCamera.updateProjectionMatrix();
+
+  /* Invisible floor plane — reference for bag placement, never rendered */
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(BASEMENT_FLOOR.size, BASEMENT_FLOOR.size),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y  = BASEMENT_FLOOR.y;
+  basementScene.add(floor);
+
+  /* Lights */
+  basementScene.add(new THREE.AmbientLight(BASEMENT_LIGHTS.ambientColor, BASEMENT_LIGHTS.ambientI));
+  const bKey = new THREE.DirectionalLight(BASEMENT_LIGHTS.keyColor, BASEMENT_LIGHTS.keyI);
+  bKey.position.set(BASEMENT_LIGHTS.keyPos.x, BASEMENT_LIGHTS.keyPos.y, BASEMENT_LIGHTS.keyPos.z);
+  basementScene.add(bKey);
+  const bWarm = new THREE.DirectionalLight(BASEMENT_LIGHTS.warmColor, BASEMENT_LIGHTS.warmI);
+  bWarm.position.set(BASEMENT_LIGHTS.warmPos.x, BASEMENT_LIGHTS.warmPos.y, BASEMENT_LIGHTS.warmPos.z);
+  basementScene.add(bWarm);
+
+  /* Clone bags — gltf.scene already has pivot correction applied */
+  function placeBag(conf) {
+    const bag = gltf.scene.clone(true);
+    bag.scale.setScalar(heroScale * conf.scale);
+    bag.position.set(conf.position.x, conf.position.y, conf.position.z);
+    bag.rotation.set(conf.rotation.x, conf.rotation.y, conf.rotation.z);
+    basementScene.add(bag);
+    return bag;
+  }
+
+  basementBag1 = placeBag(PILE.bag1);
+  basementBag2 = placeBag(PILE.bag2);
+  landedBag    = placeBag(PILE.landed);
+  landedBag.visible = false;   /* shown only when mainBag hides at transition */
+
+  resizeBasementCanvas();
 }
 
-/* ── updateBasementBagPositions ─────────────────────────────────
-   Called every render frame.
-
-   Gets the current viewport rect of #kelder-section via getBoundingClientRect().
-   Because getBoundingClientRect() returns coordinates relative to the viewport
-   (not the document), it automatically reflects the current scroll position.
-   Multiplying by xRatio/yRatio picks a point inside the section, then
-   screenToWorld() converts that to a Three.js world position.
-
-   Result: the two bags feel physically attached to the basement image —
-   they scroll with it, appear when it enters view, and leave with it.
-   They are never at a fixed viewport position. */
-function updateBasementBagPositions() {
-  if (!kelderSection || !basementBag1 || !basementBag2) return;
-
-  const rect    = kelderSection.getBoundingClientRect();
-  const inView  = rect.bottom > 0 && rect.top < window.innerHeight;
-
-  basementBag1.visible = inView;
-  basementBag2.visible = inView;
-  if (!inView) return;
-
-  [
-    [basementBag1, BASEMENT_BAG_ANCHORS.bag1],
-    [basementBag2, BASEMENT_BAG_ANCHORS.bag2],
-  ].forEach(([bag, conf]) => {
-    const sx    = rect.left + rect.width  * conf.xRatio;
-    const sy    = rect.top  + rect.height * conf.yRatio;
-    const world = screenToWorld(sx, sy, conf.z);
-    bag.position.set(world.x, world.y, world.z);
-  });
+/* ── resizeBasementCanvas ───────────────────────────────────────
+   Resizes canvas 2 to match its containing section. */
+function resizeBasementCanvas() {
+  if (!basementRenderer || !basementCamera) return;
+  const kelderEl = document.getElementById('kelder-section');
+  if (!kelderEl) return;
+  const w = kelderEl.offsetWidth;
+  const h = kelderEl.offsetHeight;
+  basementRenderer.setSize(w, h, false);
+  basementCamera.aspect = w / h;
+  basementCamera.updateProjectionMatrix();
 }
 
 /* ── Loading ── */
@@ -1055,16 +1155,6 @@ const safetyTimer = setTimeout(dismissScreen, 12000);
 function dismissScreen() {
   screen.classList.add('fade-out');
   setTimeout(() => screen.remove(), 700);
-}
-
-function makeBasementBag(conf, baseScale) {
-  const bag = mainBag.clone();
-  bag.scale.setScalar(baseScale * conf.scale);
-  bag.position.set(0, -9999, conf.z);   /* far offscreen until first frame positions it */
-  bag.rotation.set(conf.rotation.x, conf.rotation.y, conf.rotation.z);
-  bag.visible = false;
-  scene.add(bag);
-  return bag;
 }
 
 /* ── Load GLB ── */
@@ -1092,13 +1182,10 @@ new GLTFLoader().load(
     state.scaleS = heroScale;
     mainBag.rotation.set(state.rotX, state.rotY, state.rotZ);
 
-    basementBag1 = makeBasementBag(BASEMENT_BAG_ANCHORS.bag1, heroScale);
-    basementBag2 = makeBasementBag(BASEMENT_BAG_ANCHORS.bag2, heroScale);
-
-    kelderSection = document.getElementById('kelder-section');
+    initBasementScene(gltf);   /* creates canvas 2, clones bags — heroScale must be known first */
 
     clock.start();
-    loop();
+    loopBoth();
     setupScrollAnimations();
 
     clearTimeout(safetyTimer);
@@ -1116,96 +1203,103 @@ new GLTFLoader().load(
   (err) => { console.error(err); clearTimeout(safetyTimer); dismissScreen(); }
 );
 
-/* ── Scroll animations (mainBag only — basement bags are purely page-anchored) ── */
+/* ── Scroll animations ── */
 function setupScrollAnimations() {
 
+  /* Reduced-motion: skip animation, snap to final state */
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     Object.assign(state, {
-      posX: MAIN_BAG_LANDING.position.x, posY: MAIN_BAG_LANDING.position.y, posZ: MAIN_BAG_LANDING.position.z,
-      rotX: MAIN_BAG_LANDING.rotation.x, rotY: MAIN_BAG_LANDING.rotation.y, rotZ: MAIN_BAG_LANDING.rotation.z,
-      scaleS: heroScale * MAIN_BAG_LANDING.scaleRatio, floatAmp: 0,
-      ambientI: BASEMENT_LIGHTING.ambientI, keyI: BASEMENT_LIGHTING.keyI,
-      warmI: BASEMENT_LIGHTING.warmI, toneExp: BASEMENT_LIGHTING.toneExp,
-      warmTint: BASEMENT_LIGHTING.warmTint,
+      posX: LANDING.position.x, posY: LANDING.position.y, posZ: LANDING.position.z,
+      rotX: LANDING.rotation.x, rotY: LANDING.rotation.y, rotZ: LANDING.rotation.z,
+      scaleS: heroScale * LANDING.scaleRatio, floatAmp: 0,
+      ambientI: FALL_LIGHTS.ambientI, keyI: FALL_LIGHTS.keyI,
+      warmI: FALL_LIGHTS.warmI, toneExp: FALL_LIGHTS.toneExp,
+      warmTint: FALL_LIGHTS.warmTint,
     });
+    if (mainBag)   mainBag.visible   = false;
+    if (landedBag) landedBag.visible = true;
     const s = document.querySelector('.bag-contact-shadow');
     if (s) { s.style.opacity = '0.45'; s.style.transform = 'scale(1)'; }
     return;
   }
 
-  /* mainBag 3-phase fall as kelder top enters viewport → kelder center hits center
-     Phase 1 [0 → 0.35]  departure lean  — bag tilts and float stops
-     Phase 2 [0.35→ 0.72] midair tumble  — full spin through the air
-     Phase 3 [0.72→ 1.0]  landing snap   — slams down to final pose */
+  /* 3-phase fall: kelder top enters viewport → kelder center hits screen center.
+     onUpdate drives the canvas 1↔2 visibility swap at progress 0.98:
+     mainBag (canvas 1) hides, landedBag (canvas 2) appears.
+     Same model + same pose = imperceptible switch. */
   const fallTL = gsap.timeline({
-    scrollTrigger: { trigger: '#kelder-section', start: 'top bottom', end: 'center center', scrub: 1.4 }
+    scrollTrigger: {
+      trigger: '#kelder-section',
+      start:   FALL.scrollStart,
+      end:     FALL.scrollEnd,
+      scrub:   FALL.scrub,
+      onUpdate(self) {
+        if (self.progress < 0.98) {
+          if (mainBag   && !mainBag.visible)   mainBag.visible   = true;
+          if (landedBag &&  landedBag.visible) landedBag.visible = false;
+        } else {
+          if (mainBag   &&  mainBag.visible)   mainBag.visible   = false;
+          if (landedBag && !landedBag.visible) landedBag.visible = true;
+        }
+      },
+    }
   });
 
-  /* Phase 1 — departure lean */
+  /* Phase 1: bag tips forward, float stops */
   fallTL.to(state, {
-    rotX: MAIN_BAG_TWIRL.departRot.x,
-    rotY: MAIN_BAG_TWIRL.departRot.y,
-    rotZ: MAIN_BAG_TWIRL.departRot.z,
+    rotX: FALL.phase1Rot.x, rotY: FALL.phase1Rot.y, rotZ: FALL.phase1Rot.z,
     floatAmp: 0,
-    ease: 'power1.in',
-    duration: 0.35,
+    ease: FALL.ease1, duration: FALL.phase1Duration,
   });
 
-  /* Phase 2 — midair tumble */
+  /* Phase 2: mid-air — nearly flat, dropping */
   fallTL.to(state, {
-    posX: MAIN_BAG_TWIRL.midPos.x,
-    posY: MAIN_BAG_TWIRL.midPos.y,
-    posZ: MAIN_BAG_TWIRL.midPos.z,
-    rotX: MAIN_BAG_TWIRL.midRot.x,
-    rotY: MAIN_BAG_TWIRL.midRot.y,
-    rotZ: MAIN_BAG_TWIRL.midRot.z,
-    scaleS: heroScale * MAIN_BAG_TWIRL.midScale,
-    ease: 'power2.in',
-    duration: 0.37,
+    posX: FALL.midPos.x, posY: FALL.midPos.y, posZ: FALL.midPos.z,
+    rotX: FALL.midRot.x, rotY: FALL.midRot.y, rotZ: FALL.midRot.z,
+    scaleS: heroScale * FALL.midScale,
+    ease: FALL.ease2, duration: FALL.phase2Duration,
   });
 
-  /* Phase 3 — landing snap */
+  /* Phase 3: landing snap */
   fallTL.to(state, {
-    posX: MAIN_BAG_LANDING.position.x,
-    posY: MAIN_BAG_LANDING.position.y,
-    posZ: MAIN_BAG_LANDING.position.z,
-    rotX: MAIN_BAG_LANDING.rotation.x,
-    rotY: MAIN_BAG_LANDING.rotation.y,
-    rotZ: MAIN_BAG_LANDING.rotation.z,
-    scaleS: heroScale * MAIN_BAG_LANDING.scaleRatio,
-    ease: 'power3.out',
-    duration: 0.28,
+    posX: LANDING.position.x, posY: LANDING.position.y, posZ: LANDING.position.z,
+    rotX: LANDING.rotation.x, rotY: LANDING.rotation.y, rotZ: LANDING.rotation.z,
+    scaleS: heroScale * LANDING.scaleRatio,
+    ease: FALL.ease3, duration: FALL.phase3Duration,
   });
 
-  /* Concurrent: lighting transition + shadow reveal */
+  /* Concurrent: lighting darkens/warms across full fall */
   fallTL.to(state, {
-    ambientI: BASEMENT_LIGHTING.ambientI,
-    keyI:     BASEMENT_LIGHTING.keyI,
-    warmI:    BASEMENT_LIGHTING.warmI,
-    toneExp:  BASEMENT_LIGHTING.toneExp,
-    warmTint: BASEMENT_LIGHTING.warmTint,
+    ambientI: FALL_LIGHTS.ambientI, keyI: FALL_LIGHTS.keyI,
+    warmI:    FALL_LIGHTS.warmI,    toneExp: FALL_LIGHTS.toneExp,
+    warmTint: FALL_LIGHTS.warmTint,
     ease: 'power1.inOut', duration: 1.0,
   }, 0);
-  fallTL.to('.bag-contact-shadow', { opacity: 1, scale: 1, ease: 'power2.out', duration: 0.28 }, 0.72);
 
-  /* Subtle settle after impact */
+  /* Shadow reveals at start of phase 3 */
+  const phase3Start = FALL.phase1Duration + FALL.phase2Duration;
+  fallTL.to('.bag-contact-shadow', {
+    opacity: 1, scale: 1, ease: 'power2.out', duration: FALL.phase3Duration,
+  }, phase3Start);
+
+  /* Settle: subtle bounce after impact */
   gsap.timeline({
     scrollTrigger: { trigger: '#kelder-section', start: 'center center', end: 'bottom center', scrub: 0.6 }
   })
-  .to(state, { posY: MAIN_BAG_LANDING.position.y + 0.07, ease: 'power2.out',  duration: 0.15 }, 0)
-  .to(state, { posY: MAIN_BAG_LANDING.position.y - 0.02, rotZ: MAIN_BAG_LANDING.rotation.z - 0.06, ease: 'power2.in', duration: 0.85 }, 0.15)
+  .to(state, { posY: LANDING.position.y + 0.07, ease: 'power2.out',  duration: 0.15 }, 0)
+  .to(state, { posY: LANDING.position.y - 0.02, rotZ: LANDING.rotation.z - 0.06, ease: 'power2.in', duration: 0.85 }, 0.15)
   .to('.bag-contact-shadow', { opacity: 0.75, scale: 1.2,  ease: 'power2.out', duration: 0.15 }, 0)
   .to('.bag-contact-shadow', { opacity: 0.48, scale: 1.05, ease: 'power2.out', duration: 0.85 }, 0.15);
 }
 
-/* ── Render loop ── */
-function loop() {
-  requestAnimationFrame(loop);
+/* ── Render loop (canvas 1 + canvas 2 in one RAF) ── */
+function loopBoth() {
+  requestAnimationFrame(loopBoth);
   if (!mainBag) return;
 
   const t = clock.getElapsedTime();
 
-  /* mainBag: GSAP state drives position/rotation; sine adds float-bob */
+  /* Canvas 1: hero bag */
   mainBag.position.set(
     state.posX,
     state.posY + Math.sin(t * 1.2) * 0.055 * state.floatAmp,
@@ -1217,17 +1311,23 @@ function loop() {
     state.rotZ + Math.sin(t * 0.65) * 0.025 * state.floatAmp
   );
   mainBag.scale.setScalar(state.scaleS);
-  ambientLight.intensity = state.ambientI;
-  keyLight.intensity     = state.keyI;
-  warmLight.intensity    = state.warmI;
+  ambientLight.intensity       = state.ambientI;
+  keyLight.intensity           = state.keyI;
+  warmLight.intensity          = state.warmI;
   renderer.toneMappingExposure = state.toneExp;
   keyLight.color.setRGB(1.0, 1.0 - state.warmTint * 0.10, 1.0 - state.warmTint * 0.22);
-
-  /* basementBag1 + basementBag2: convert kelder section rect → world coords every frame.
-     This is what makes them scroll with the page instead of staying viewport-fixed. */
-  updateBasementBagPositions();
-
   renderer.render(scene, camera);
+
+  /* Canvas 2: basement scene — only rendered when section is near viewport */
+  if (basementRenderer && basementScene && basementCamera && window.innerWidth > 767) {
+    const kelderEl = document.getElementById('kelder-section');
+    if (kelderEl) {
+      const rect = kelderEl.getBoundingClientRect();
+      if (rect.bottom > -200 && rect.top < window.innerHeight + 200) {
+        basementRenderer.render(basementScene, basementCamera);
+      }
+    }
+  }
 }
 </script>
 
