@@ -532,13 +532,13 @@
     /* CSS contact shadow — supporting layer under pile; fades in as bag lands */
     .bag-contact-shadow {
       position: absolute;
-      right: clamp(180px, 24vw, 420px);
-      bottom: clamp(70px, 11vh, 150px);
-      width: clamp(150px, 15vw, 260px);
-      height: clamp(28px, 3.5vw, 60px);
+      right: clamp(170px, 22vw, 390px);
+      bottom: clamp(65px, 10vh, 140px);
+      width: clamp(200px, 20vw, 340px);
+      height: clamp(36px, 4.5vw, 72px);
       border-radius: 999px;
-      background: rgba(0,0,0,0.42);
-      filter: blur(20px);
+      background: rgba(0,0,0,0.55);
+      filter: blur(12px);
       opacity: 0;
       transform: scale(0.65);
       z-index: 4;
@@ -804,10 +804,10 @@
 
       </div>
 
-      <!-- START NU — arrows pointing RIGHT -->
+      <!-- BESTEL NU — arrows pointing RIGHT -->
       <div class="nav-cta-area">
         <span class="nav-start">
-          START NU
+          BESTEL NU
           <img src="assets/keyboard_arrow_down.svg" alt="">
           <img src="assets/keyboard_arrow_down.svg" alt="">
         </span>
@@ -1018,7 +1018,7 @@ const FALL = {
   phase1Rot: { x: -0.78, y: -0.52, z:  0.06 }, /* tip forward, slight lean */
   midPos:    { x:  1.20, y: -0.18, z:  0.06 }, /* overwritten by computeFallMidPoint() */
   midRot:    { x: -1.35, y: -0.38, z:  0.08 }, /* nearly flat */
-  midScale:  0.74,
+  midScale:  0.52,
 
   ease1: 'power1.in',
   ease2: 'power1.inOut',  /* constant gravity — no mid-air hang */
@@ -1116,7 +1116,7 @@ const HERO_LIGHTS = {
 /* Canvas 1: lighting targets tweened as bag falls into basement.
    Starts at 25% of fall so lighting shifts before the bag reaches the floor. */
 const FALL_LIGHTS = {
-  ambientI: 0.28, keyI: 1.05, warmI: 0.80, toneExp: 0.88, warmTint: 0.90,
+  ambientI: 0.22, keyI: 0.88, warmI: 0.80, toneExp: 0.80, warmTint: 0.90,
 };
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -1265,16 +1265,16 @@ function applyHeroBasementBlend(obj, blend) {
     const mats = Array.isArray(child.material) ? child.material : [child.material];
     mats.forEach(mat => {
       if (mat.color && mat.userData.originalColor) {
-        const target = new THREE.Color(0xb05a28);
-        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.55);
+        const target = new THREE.Color(0x5e2e0e);
+        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.78);
       }
       if (mat.roughness !== undefined) {
         const orig = mat.userData.originalRoughness ?? mat.roughness;
-        mat.roughness = THREE.MathUtils.lerp(orig, 0.88, blend);
+        mat.roughness = THREE.MathUtils.lerp(orig, 0.94, blend);
       }
       if (mat.envMapIntensity !== undefined) {
         const orig = mat.userData.originalEnvMapIntensity ?? mat.envMapIntensity;
-        mat.envMapIntensity = THREE.MathUtils.lerp(orig, 0.18, blend);
+        mat.envMapIntensity = THREE.MathUtils.lerp(orig, 0.08, blend);
       }
     });
   });
@@ -1675,7 +1675,7 @@ function setupScrollAnimations() {
 
   /* CSS contact shadow — reveals only in phase 3 (bag approaching floor) */
   fallTL.to('.bag-contact-shadow', {
-    opacity: 0.78, scale: 1,
+    opacity: 0.90, scale: 1,
     ease: 'power2.out', duration: FALL.phase3Duration,
   }, phase3Start);
 
