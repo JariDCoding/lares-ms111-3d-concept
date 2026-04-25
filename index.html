@@ -884,9 +884,9 @@ window.addEventListener('resize', resize);
 resize();
 
 /* ── Landing constants — tune to align bag with basement floor ── */
-const LAND_POS   = { x:  0.80, y: -0.55, z:  0.10 };
+const LAND_POS   = { x:  1.10, y: -0.50, z:  0.10 };
 const LAND_ROT   = { x:  1.25, y: -0.15, z: -0.20 };
-const LAND_SCALE = 0.88;
+const LAND_SCALE = 0.82;
 
 /* ── State proxy — GSAP writes, render loop reads ── */
 const state = {
@@ -918,7 +918,10 @@ new GLTFLoader().load(
     const maxDim = Math.max(...box.getSize(new THREE.Vector3()).toArray());
     model.position.sub(centre);
     model.scale.setScalar(2.0 / maxDim);
-    model.position.y -= 0.60;
+    /* Canvas is now full-viewport, so x=0 = page centre.
+       Shift right into the hero's right column and lower slightly. */
+    model.position.x += 1.30;
+    model.position.y -= 0.40;
 
     /* Sync initial pose into state */
     state.posX = model.position.x;
