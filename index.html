@@ -871,34 +871,34 @@ const HERO_BAG = {
 };
 
 const MAIN_BAG_TWIRL = {
-  /* Phase 1: bag departs hero with a weighted lean */
-  departRot: { x: -0.32, y: -0.82, z:  0.22 },
-  /* Phase 2: mid-air tumble — full rotation while gravity drops */
-  midPos:    { x: 1.06,  y: -0.58, z:  0.04 },
-  midRot:    { x: -2.85, y:  0.45, z:  1.80 },
-  midScale:  0.75,   /* fraction of heroScale at peak of fall */
+  /* Phase 1: bag tips forward — nose-dives toward floor */
+  departRot: { x: -1.05, y: -0.60, z:  0.10 },
+  /* Phase 2: nearly flat, dropping fast */
+  midPos:    { x:  1.15, y: -0.35, z:  0.06 },
+  midRot:    { x: -1.42, y: -0.45, z:  0.08 },
+  midScale:  0.82,
 };
 
 const MAIN_BAG_LANDING = {
   position:   { x: 1.08, y: -0.76, z:  0.10 },
-  rotation:   { x: -1.20, y: -0.40, z:  0.62 },
+  rotation:   { x: -1.35, y: -0.42, z:  0.18 },
   scaleRatio: 0.58,
 };
 
 const BASEMENT_BAG_ANCHORS = {
   bag1: {
-    xRatio:   0.73,
-    yRatio:   0.72,
+    xRatio:   0.65,
+    yRatio:   0.58,
     z:        0.04,
-    scale:    0.50,
-    rotation: { x: -1.42, y: -0.30, z:  0.50 },
+    scale:    1.00,  /* 2× previous — lying flat on floor */
+    rotation: { x: -1.54, y: -0.40, z:  0.18 },
   },
   bag2: {
-    xRatio:   0.64,
-    yRatio:   0.76,
-    z:        0.10,
-    scale:    0.47,
-    rotation: { x: -1.50, y: -0.88, z: -0.35 },
+    xRatio:   0.71,
+    yRatio:   0.62,
+    z:        0.08,
+    scale:    0.96,  /* slightly smaller, half-overlapping bag1 */
+    rotation: { x: -1.50, y:  0.55, z: -0.12 },
   },
 };
 
