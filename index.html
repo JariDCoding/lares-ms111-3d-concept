@@ -23,78 +23,77 @@
       line-height: normal;
     }
 
-    /* ─────────────────────────────────────────────
-       TOP INFO BAR
-    ───────────────────────────────────────────── */
-    .top-bar {
-      background: var(--dark);
-      color: var(--white);
-      height: clamp(34px, 2.8vw, 40px);
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: clamp(18px, 3.2vw, 46px);
-      padding: 0 clamp(20px, 6.6vw, 95px);
-      font-size: clamp(11px, 1.1vw, 16px);
-      font-weight: 400;
+    /* ═══════════════════════════════════════════
+       SITE HEADER  (Figma node 45-600)
+    ═══════════════════════════════════════════ */
+    .site-header {
+      width: 100%;
+      background: var(--white);
+      /* 3 px white gap at very top, matching Figma */
+      padding-top: 3px;
     }
 
-    .tb-item {
+    /* ── dark info tab (peeks above nav) ─────── */
+    .header-tab {
+      /* starts at ~25.8% from left — logo area stays white */
+      margin-left: clamp(140px, 25.8vw, 371px);
+      background: var(--dark);
+      border-radius: 25px 50px 0 0;
+      height: clamp(34px, 2.85vw, 41px);
       display: flex;
       align-items: center;
-      gap: 6px;
+      padding-right: clamp(16px, 4.5vw, 66px);
+    }
+
+    .header-tab-items {
+      display: flex;
+      align-items: center;
+      gap: clamp(14px, 2.8vw, 40px);
+      margin-left: auto;
+      font-size: clamp(11px, 1.1vw, 16px);
+      font-weight: 400;
+      color: var(--white);
       white-space: nowrap;
     }
 
-    .tb-item a { color: inherit; text-decoration: underline; }
+    .htab-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-    .tb-icon {
-      width: 15px;
-      height: 15px;
+    .htab-item a {
+      color: var(--white);
+      text-decoration: underline;
+    }
+
+    .htab-icon {
+      width: clamp(14px, 1.25vw, 18px);
+      height: clamp(14px, 1.25vw, 18px);
       filter: brightness(10);
       flex-shrink: 0;
     }
 
-    /* ─────────────────────────────────────────────
-       HERO SECTION
-    ───────────────────────────────────────────── */
-    .hero {
-      background: var(--white);
-      min-height: clamp(520px, 71vw, 1024px);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* ─────────────────────────────────────────────
-       NAV OUTER — dark-tab pseudo-element
-    ───────────────────────────────────────────── */
-    .nav-outer {
-      position: relative;
+    /* language flag */
+    .htab-flag {
+      width: 20px;
+      height: auto;
+      border-radius: 2px;
       flex-shrink: 0;
-      /* padding-top = height of dark tab that peeks above nav */
-      padding: clamp(12px, 2.85vw, 41px) clamp(16px, 3.4vw, 49px) 0;
     }
 
-    /* Dark "hat" tab behind the right side of the nav */
-    .nav-outer::before {
-      content: '';
-      position: absolute;
-      z-index: 0;
-      top: 0;
-      left: clamp(160px, 25.8vw, 371px);
-      right: 0;
-      bottom: 0;
-      background: var(--dark);
-      border-radius: 25px 50px 0 0;
+    .htab-lang {
+      cursor: pointer;
     }
 
-    /* ─────────────────────────────────────────────
-       NAV BAR
-    ───────────────────────────────────────────── */
-    .nav {
+    /* ── nav bar ─────────────────────────────── */
+    .header-nav-wrap {
       position: relative;
-      z-index: 1;
+      padding: 0 clamp(16px, 3.4vw, 49px);
+    }
+
+    .header-nav {
+      position: relative;
       display: flex;
       align-items: stretch;
       height: clamp(56px, 5.7vw, 82px);
@@ -104,8 +103,8 @@
       background: var(--white);
     }
 
-    /* Logo */
-    .nav-logo-wrap {
+    /* logo section */
+    .nav-logo-area {
       background: var(--white);
       display: flex;
       align-items: center;
@@ -120,16 +119,16 @@
       display: block;
     }
 
-    /* Orange links strip */
+    /* orange links strip */
     .nav-links {
       flex: 1;
       background: var(--orange);
       display: flex;
       align-items: center;
-      gap: clamp(12px, 2.5vw, 36px);
+      gap: clamp(10px, 2.5vw, 36px);
       padding: 0 clamp(14px, 2.8vw, 40px);
-      /* diagonal left edge */
-      clip-path: polygon(clamp(10px, 1.2vw, 17px) 0%, 100% 0%, 100% 100%, 0% 100%);
+      /* diagonal cut on the left edge, matching Figma Subtract shape */
+      clip-path: polygon(clamp(10px,1.2vw,17px) 0%, 100% 0%, 100% 100%, 0% 100%);
       margin-left: -1px;
     }
 
@@ -140,9 +139,9 @@
       font-size: clamp(13px, 1.5vw, 22px);
       font-weight: 600;
       color: var(--white);
+      text-decoration: none;
       white-space: nowrap;
       cursor: pointer;
-      text-decoration: none;
     }
 
     .nav-link img {
@@ -151,8 +150,8 @@
       filter: brightness(10);
     }
 
-    /* START NU */
-    .nav-cta {
+    /* START NU section */
+    .nav-cta-area {
       background: var(--white);
       display: flex;
       align-items: center;
@@ -161,7 +160,7 @@
     }
 
     .nav-start {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       font-size: clamp(13px, 1.5vw, 22px);
       font-weight: 600;
@@ -177,7 +176,7 @@
       margin-left: -5px;
     }
 
-    /* Hamburger */
+    /* hamburger — mobile only */
     .nav-toggle {
       display: none;
       background: none;
@@ -205,14 +204,14 @@
     .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scaleX(0); }
     .nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); width: 24px; }
 
-    /* Mobile dropdown */
+    /* mobile dropdown */
     .mobile-menu {
       display: none;
       position: absolute;
       top: 100%;
       left: 0;
       right: 0;
-      z-index: 50;
+      z-index: 100;
       background: var(--white);
       box-shadow: 0 8px 24px rgba(0,0,0,.12);
       flex-direction: column;
@@ -244,51 +243,58 @@
       display: block;
     }
 
-    /* ─────────────────────────────────────────────
+    /* ═══════════════════════════════════════════
        HERO CONTENT
-    ───────────────────────────────────────────── */
-    .hero-content {
-      flex: 1;
-      padding: clamp(32px, 11.3vw, 163px) clamp(20px, 7.6vw, 110px) clamp(72px, 8vw, 115px);
+    ═══════════════════════════════════════════ */
+    .hero {
+      background: var(--white);
+      min-height: clamp(480px, 60vw, 860px);
+      display: flex;
+      flex-direction: column;
     }
 
+    .hero-content {
+      flex: 1;
+      padding: clamp(40px, 9vw, 130px) clamp(20px, 7.6vw, 110px) clamp(60px, 7vw, 100px);
+    }
+
+    /* H1 — always 3 lines via explicit <br> tags */
     .hero-headline {
-      font-size: clamp(30px, 5.8vw, 84px);
-      line-height: 1;
+      font-size: clamp(30px, 4.7vw, 68px);
+      line-height: 1.05;
       font-weight: 600;
       color: var(--dark);
-      max-width: clamp(260px, 52vw, 750px);
-      margin-bottom: clamp(18px, 4.2vw, 60px);
+      /* wide enough that no line wraps inside itself */
+      max-width: min(90vw, 780px);
+      margin-bottom: clamp(20px, 3.5vw, 50px);
     }
 
     .hero-headline .accent { color: var(--orange); }
 
     .hero-sub {
-      font-size: clamp(13px, 1.55vw, 22px);
+      font-size: clamp(13px, 1.4vw, 20px);
       font-weight: 600;
       color: var(--dark);
-      max-width: clamp(240px, 43.7vw, 630px);
-      line-height: 1.6;
-      margin-bottom: clamp(24px, 5.5vw, 80px);
+      max-width: clamp(260px, 43vw, 630px);
+      line-height: 1.65;
+      margin-bottom: clamp(28px, 5vw, 72px);
     }
 
-    /* ─────────────────────────────────────────────
-       CTA BUTTONS
-    ───────────────────────────────────────────── */
+    /* CTA buttons */
     .hero-btns {
       display: flex;
-      gap: clamp(10px, 2.1vw, 30px);
+      gap: clamp(10px, 2vw, 28px);
       flex-wrap: wrap;
     }
 
     .btn-primary {
-      height: clamp(44px, 4.5vw, 64px);
+      height: clamp(44px, 4.3vw, 62px);
       padding: 0 clamp(20px, 2.8vw, 40px);
       border-radius: 50px;
       background: var(--orange);
       color: #f5f5f5;
       font-family: 'Inter', sans-serif;
-      font-size: clamp(13px, 1.2vw, 17px);
+      font-size: clamp(13px, 1.1vw, 16px);
       font-weight: 600;
       border: none;
       cursor: pointer;
@@ -301,14 +307,14 @@
     .btn-primary:hover { background: var(--orange-dk); }
 
     .btn-secondary {
-      height: clamp(44px, 4.5vw, 64px);
+      height: clamp(44px, 4.3vw, 62px);
       padding: 0 clamp(20px, 2.8vw, 40px);
       border-radius: 50px;
       background: transparent;
       border: 1.5px solid #2c2c2c;
       color: #1e1e1e;
       font-family: 'Inter', sans-serif;
-      font-size: clamp(13px, 1.2vw, 17px);
+      font-size: clamp(13px, 1.1vw, 16px);
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
@@ -319,14 +325,13 @@
 
     .btn-secondary:hover { background: #f5f5f5; }
 
-    /* ─────────────────────────────────────────────
+    /* ═══════════════════════════════════════════
        PARTNER BAR
-    ───────────────────────────────────────────── */
+    ═══════════════════════════════════════════ */
     .partner-bar {
-      flex-shrink: 0;
       border-top: 1px solid rgba(0,0,0,.08);
       height: clamp(48px, 5vw, 72px);
-      padding: 0 clamp(20px, 6.6vw, 95px);
+      padding: 0 clamp(20px, 7.6vw, 110px);
       display: flex;
       align-items: center;
       gap: clamp(24px, 5vw, 80px);
@@ -335,17 +340,17 @@
     .buildwise-logo {
       display: flex;
       align-items: center;
-      height: clamp(20px, 2.5vw, 34px);
+      height: clamp(20px, 2.4vw, 34px);
       gap: 4px;
     }
 
     .buildwise-logo img { height: 100%; width: auto; display: block; }
 
-    /* ─────────────────────────────────────────────
+    /* ═══════════════════════════════════════════
        RESPONSIVE BREAKPOINTS
-    ───────────────────────────────────────────── */
+    ═══════════════════════════════════════════ */
 
-    /* Tablet: hide last two nav links */
+    /* Tablet — hide last two nav links */
     @media (max-width: 1024px) {
       .nav-link:nth-child(3),
       .nav-link:nth-child(4) { display: none; }
@@ -353,25 +358,27 @@
 
     /* Mobile */
     @media (max-width: 767px) {
-      .top-bar { display: none; }
+      .site-header { padding-top: 0; }
+      .header-tab  { display: none; }
 
-      .nav-outer::before { display: none; }
-      .nav-links { display: none; }
-      .nav-cta { display: none; }
-      .nav-toggle { display: flex; }
+      .header-nav-wrap { padding: 0; }
 
-      .nav {
-        border-radius: 30px;
-        margin: 10px 12px 0;
+      .header-nav {
+        border-radius: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
       }
 
-      .nav-outer {
-        padding: 0;
+      .nav-links    { display: none; }
+      .nav-cta-area { display: none; }
+      .nav-toggle   { display: flex; }
+
+      .nav-logo-area { flex: 1; }
+
+      .partner-bar {
+        padding: 0 20px;
+        gap: 20px;
       }
 
-      .nav-logo-wrap { flex: 1; }
-
-      .partner-bar { gap: 20px; }
       .partner-bar .buildwise-logo:nth-child(3) { display: none; }
     }
 
@@ -391,47 +398,67 @@
 </head>
 <body>
 
-<!-- TOP INFO BAR -->
-<div class="top-bar">
-  <div class="tb-item">+32 472 68 54 48</div>
-  <div class="tb-item">
-    <img class="tb-icon" src="assets/Envelope.svg" alt="">
-    <a href="mailto:info@laressolutions.com">info@laressolutions.com</a>
-  </div>
-  <div class="tb-item">
-    <img class="tb-icon" src="assets/User.svg" alt="">
-    <span>B2B Login</span>
-  </div>
-  <div class="tb-item">
-    Nederlands
-    <img class="tb-icon" src="assets/keyboard_arrow_down.svg" alt="">
-  </div>
-</div>
+<!-- ═══════════════════════════════════════════
+     SITE HEADER — Figma 45-600 (sitewide)
+═══════════════════════════════════════════ -->
+<header class="site-header">
 
-<!-- HERO -->
-<section class="hero">
+  <!-- Dark info tab (peeks above nav) -->
+  <div class="header-tab">
+    <div class="header-tab-items">
 
-  <!-- NAV -->
-  <div class="nav-outer">
-    <nav class="nav">
+      <span class="htab-item">
+        <img class="htab-icon" src="assets/Phone.svg" alt="">
+        +32 472 68 54 48
+      </span>
 
-      <div class="nav-logo-wrap">
+      <span class="htab-item">
+        <img class="htab-icon" src="assets/Envelope.svg" alt="">
+        <a href="mailto:info@laressolutions.com">info@laressolutions.com</a>
+      </span>
+
+      <!-- Language chooser with flag -->
+      <span class="htab-item htab-lang">
+        <img class="htab-flag" src="assets/flag-nl.png" alt="NL vlag">
+        Nederlands
+        <img class="htab-icon" src="assets/keyboard_arrow_down.svg" alt="">
+      </span>
+
+      <span class="htab-item">
+        <img class="htab-icon" src="assets/User.svg" alt="">
+        B2B Login
+      </span>
+
+    </div>
+  </div>
+
+  <!-- Nav bar -->
+  <div class="header-nav-wrap">
+    <nav class="header-nav">
+
+      <div class="nav-logo-area">
         <img class="nav-logo" src="assets/lares-logo.png" alt="Lares Solutions">
       </div>
 
       <div class="nav-links">
-        <span class="nav-link">Oplossingen <img src="assets/keyboard_arrow_down.svg" alt=""></span>
-        <span class="nav-link">Producten <img src="assets/keyboard_arrow_down.svg" alt=""></span>
-        <span class="nav-link">Over Ons</span>
-        <span class="nav-link">Contact</span>
+        <a href="#" class="nav-link">
+          Oplossingen
+          <img src="assets/keyboard_arrow_down.svg" alt="">
+        </a>
+        <a href="#" class="nav-link">
+          Producten
+          <img src="assets/keyboard_arrow_down.svg" alt="">
+        </a>
+        <a href="#" class="nav-link">Over Ons</a>
+        <a href="#" class="nav-link">Contact</a>
       </div>
 
-      <div class="nav-cta">
-        <div class="nav-start">
+      <div class="nav-cta-area">
+        <span class="nav-start">
           START NU
           <img src="assets/keyboard_arrow_down.svg" alt="">
           <img src="assets/keyboard_arrow_down.svg" alt="">
-        </div>
+        </span>
       </div>
 
       <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-label="Menu openen">
@@ -440,6 +467,7 @@
 
     </nav>
 
+    <!-- Mobile dropdown -->
     <div class="mobile-menu" id="mobileMenu" role="navigation">
       <a href="#" class="mm-link">Oplossingen</a>
       <a href="#" class="mm-link">Producten</a>
@@ -449,22 +477,35 @@
     </div>
   </div>
 
-  <!-- CONTENT -->
+</header>
+
+<!-- ═══════════════════════════════════════════
+     HERO
+═══════════════════════════════════════════ -->
+<section class="hero">
+
   <div class="hero-content">
+
+    <!-- H1: always 3 lines — explicit <br> controls each line break -->
     <h1 class="hero-headline">
       Producten en advies<br>
-      voor <span class="accent">professionele<br>vochtbestrijding</span>
+      voor <span class="accent">professionele<br>
+      vochtbestrijding</span>
     </h1>
+
     <p class="hero-sub">
-      Sinds 25 jaar het technisch klankbord van aannemers, architecten en studiebureaus met levering binnen 48&nbsp;u in heel België.
+      Sinds 25 jaar het technisch klankbord van aannemers,
+      architecten en studiebureaus met levering binnen 48&nbsp;u in heel België.
     </p>
+
     <div class="hero-btns">
       <button class="btn-primary">Vraag advies →</button>
       <button class="btn-secondary">Onze producten</button>
     </div>
+
   </div>
 
-  <!-- PARTNER BAR -->
+  <!-- Partner logos -->
   <div class="partner-bar">
     <div class="buildwise-logo">
       <img src="assets/Group-1.svg" alt="Buildwise">
@@ -488,7 +529,7 @@ const mobileMenu = document.getElementById('mobileMenu');
 
 navToggle.addEventListener('click', () => {
   const open = mobileMenu.classList.toggle('is-open');
-  navToggle.setAttribute('aria-expanded', open);
+  navToggle.setAttribute('aria-expanded', String(open));
 });
 </script>
 
