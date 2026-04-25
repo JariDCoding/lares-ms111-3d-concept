@@ -906,13 +906,6 @@ function makePileBag(posX, posY, posZ, rotX, rotY, rotZ, scale) {
   clone.scale.setScalar(scale);
   clone.position.set(posX, posY, posZ);
   clone.rotation.set(rotX, rotY, rotZ);
-  clone.traverse(child => {
-    if (child.isMesh) {
-      child.material = child.material.clone();
-      child.material.transparent = true;
-      child.material.opacity = 0;
-    }
-  });
   scene.add(clone);
   return clone;
 }
@@ -960,9 +953,11 @@ new GLTFLoader().load(
     state.scaleS = heroScale;
     model.rotation.set(state.rotX, state.rotY, state.rotZ);
 
-    /* Static pile — 2 bags already lying on the basement floor */
-    pileBags.push(makePileBag( 1.40, -0.92, -0.08, -1.05, -0.30,  0.40, heroScale * 0.52));
-    pileBags.push(makePileBag( 0.75, -0.96,  0.18, -1.00, -0.80, -0.18, heroScale * 0.50));
+    /* Static pile — bags already lying on the basement floor.
+       Positions match the photo's floor perspective (floor recedes center).
+       Slightly smaller than the falling bag — further back on the floor. */
+    pileBags.push(makePileBag( 1.55, -0.88,  0.05, -1.05, -0.50,  0.30, heroScale * 0.50));
+    pileBags.push(makePileBag( 0.85, -0.92,  0.12, -1.05, -0.65, -0.15, heroScale * 0.48));
 
     clock.start();
     loop();
@@ -1028,19 +1023,6 @@ function setupScrollAnimations() {
     opacity: 1, scale: 1,
     ease: 'power2.out', duration: 0.25
   }, 0.75);
-
-  /* Pile bags — fade in as kelder section enters view */
-  const pileOpacity = { v: 0 };
-  gsap.to(pileOpacity, {
-    v: 1,
-    ease: 'power2.out',
-    scrollTrigger: { trigger: '#kelder-section', start: 'top 80%', end: 'top 20%', scrub: 1 },
-    onUpdate() {
-      pileBags.forEach(bag => bag.traverse(child => {
-        if (child.isMesh) child.material.opacity = pileOpacity.v;
-      }));
-    }
-  });
 
   /* 2 — Settle: micro-bounce after landing */
   gsap.timeline({
