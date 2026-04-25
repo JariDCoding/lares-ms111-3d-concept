@@ -883,21 +883,21 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-/* ── Landing constants — tune to align bag with basement floor ── */
-const LAND_POS   = { x:  1.10, y: -0.50, z:  0.10 };
-const LAND_ROT   = { x:  1.25, y: -0.15, z: -0.20 };
-const LAND_SCALE = 0.60;
+/* ── Landing constants ── */
+const LAND_POS        = { x:  1.10, y: -0.50, z:  0.10 };
+const LAND_ROT        = { x:  1.25, y: -0.15, z: -0.20 };
+const LAND_SCALE_RATIO = 0.60; /* bag lands at 60% of its hero size */
 
 /* ── State proxy — GSAP writes, render loop reads ── */
 const state = {
   posX: 0, posY: 0, posZ: 0,
   rotX: 0.08, rotY: -0.55, rotZ: -0.13,
-  scaleS: 1.0,
+  scaleS: 1.0,  /* overwritten after model loads */
   floatAmp: 1,
   ambientI: 0.7, keyI: 2.5, warmI: 0,
 };
 
-let model = null;
+let model = null, heroScale = 1.0;
 const clock = new THREE.Clock();
 
 /* ── Load GLB ── */
@@ -927,17 +927,20 @@ new GLTFLoader().load(
 
     /* Centre and scale — 2.8 units = strong hero presence */
     model.position.sub(centre);
-    model.scale.setScalar(2.8 / maxDim);
+    heroScale = 2.8 / maxDim;
+    model.scale.setScalar(heroScale);
 
     /* Canvas is full-viewport: x=0 is the page centre.
        Push into the right column and position vertically. */
     model.position.x += 1.30;
     model.position.y -= 0.40;
 
-    /* Sync initial pose into state */
-    state.posX = model.position.x;
-    state.posY = model.position.y;
-    state.posZ = model.position.z;
+    /* Sync initial pose into state — scaleS must match heroScale
+       so the render loop doesn't override the computed scale */
+    state.posX  = model.position.x;
+    state.posY  = model.position.y;
+    state.posZ  = model.position.z;
+    state.scaleS = heroScale;
     model.rotation.set(state.rotX, state.rotY, state.rotZ);
     clock.start();
     loop();
@@ -964,7 +967,7 @@ function setupScrollAnimations() {
     Object.assign(state, {
       posX: LAND_POS.x, posY: LAND_POS.y, posZ: LAND_POS.z,
       rotX: LAND_ROT.x, rotY: LAND_ROT.y, rotZ: LAND_ROT.z,
-      scaleS: LAND_SCALE, floatAmp: 0, warmI: 0.55,
+      scaleS: heroScale * LAND_SCALE_RATIO, floatAmp: 0, warmI: 0.55,
     });
     const s = document.querySelector('.bag-contact-shadow');
     if (s) { s.style.opacity = '0.45'; s.style.transform = 'scale(1)'; }
@@ -988,7 +991,7 @@ function setupScrollAnimations() {
   fallTL.to(state, {
     posX: LAND_POS.x, posZ: LAND_POS.z,
     rotX: LAND_ROT.x, rotY: LAND_ROT.y, rotZ: LAND_ROT.z,
-    scaleS: LAND_SCALE, floatAmp: 0,
+    scaleS: heroScale * LAND_SCALE_RATIO, floatAmp: 0,
     ease: 'power1.inOut', duration: 1
   }, 0);
 
