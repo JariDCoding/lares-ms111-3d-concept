@@ -1020,6 +1020,20 @@ const warmLight = new THREE.DirectionalLight(0xff9944, 0.0);
 warmLight.position.set(-2, 1, 3);
 scene.add(warmLight);
 
+/* ── Objects (must be declared before resize() is called) ── */
+let mainBag      = null;   /* canvas 1 — hero bag (falls, then hides at transition) */
+let heroScale    = 1.0;
+
+/* Canvas 2 objects — created by initBasementScene() */
+let basementRenderer = null;
+let basementScene    = null;
+let basementCamera   = null;
+let basementBag1     = null;
+let basementBag2     = null;
+let landedBag        = null;   /* hero bag after landing — starts invisible */
+
+const clock = new THREE.Clock();
+
 /* ── Resize ── */
 function resize() {
   /* Canvas 1 — hero scene (viewport-fixed) */
@@ -1034,20 +1048,6 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 resize();
-
-/* ── Objects ── */
-let mainBag      = null;   /* canvas 1 — hero bag (falls, then hides at transition) */
-let heroScale    = 1.0;
-
-/* Canvas 2 objects — created by initBasementScene() */
-let basementRenderer = null;
-let basementScene    = null;
-let basementCamera   = null;
-let basementBag1     = null;
-let basementBag2     = null;
-let landedBag        = null;   /* hero bag after landing — starts invisible */
-
-const clock = new THREE.Clock();
 
 /* GSAP state proxy for mainBag — GSAP writes, render loop reads.
    Decouples the float-bob sine offset from the scroll-driven position tween. */
