@@ -1032,8 +1032,8 @@ const FALL = {
 /* Canvas 1: final landing pose — position.x/y + scaleRatio are AUTO-COMPUTED.
    rotation MUST match BASEMENT_LANDED_TARGET.rotation so the swap is rotation-seamless. */
 const LANDING = {
-  position:   { x: 1.05, y: -0.80, z:  0.10 },
-  rotation:   { x: -1.57, y: -0.28, z:  0.04 }, /* nearly flat (≈-π/2), yaw matches pile */
+  position:   { x: 1.05, y: -0.64, z:  0.10 },  /* y raised 5% viewport height vs -0.80 */
+  rotation:   { x: -1.05, y: -0.45, z:  0.06 },  /* ~60° from flat — label visible on landing */
   scaleRatio: 0.50,
 };
 
@@ -1073,7 +1073,7 @@ const PILE = {
     /* Initial clone pose — immediately overridden by placeOnFloorFromScreenPct().
        rotation kept in sync with BASEMENT_LANDED_TARGET.rotation for reference. */
     position: { x:  1.10, y: 0, z:  2.55 },
-    rotation: { x: -1.57, y: -0.28, z:  0.04 },
+    rotation: { x: -1.05, y: -0.45, z:  0.06 },
     scale:    0.55,
   },
 };
@@ -1086,7 +1086,7 @@ const BASEMENT_LANDED_TARGET = {
   xPct:     0.70,
   yPct:     0.72,
   scale:    0.55,
-  rotation: { x: -1.57, y: -0.28, z: 0.04 },
+  rotation: { x: -1.05, y: -0.45, z: 0.06 },
 };
 
 /* Canvas 2: basement lighting — damp, dark, warm.
