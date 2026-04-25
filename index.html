@@ -995,7 +995,7 @@ const FALL = {
    rotation MUST match PILE.landed.rotation so the swap is rotation-seamless. */
 const LANDING = {
   position:   { x: 1.05, y: -0.80, z:  0.10 },
-  rotation:   { x: -1.38, y: -0.38, z:  0.12 }, /* identical to PILE.landed.rotation */
+  rotation:   { x: -1.52, y: -0.38, z:  0.12 }, /* identical to PILE.landed.rotation */
   scaleRatio: 0.50,
 };
 
@@ -1022,21 +1022,22 @@ const BASEMENT_FLOOR = {
    TUNE ORDER: landed first (must match hero bag crossfade), then bag1/bag2. */
 const PILE = {
   bag1: {
-    position: { x:  0.35, y: 0, z:  1.85 },
+    position: { x:  0.44, y: 0, z:  2.00 },
     rotation: { x: -1.54, y: -0.30, z:  0.10 },
-    scale:    0.46,
+    scale:    0.48,
   },
   bag2: {
-    position: { x:  0.78, y: 0, z:  1.68 },
+    position: { x:  0.88, y: 0, z:  1.82 },
     rotation: { x: -1.50, y:  0.50, z: -0.12 },
-    scale:    0.43,
+    scale:    0.45,
   },
   landed: {
     /* rotation MUST match LANDING.rotation above.
-       computeLandingFromPile() projects world pos → screen → hero cam → auto-sets LANDING.position. */
-    position: { x:  0.18, y: 0, z:  2.02 },
-    rotation: { x: -1.38, y: -0.38, z:  0.12 },
-    scale:    0.45,
+       computeLandingFromPile() projects world pos → screen → hero cam → auto-sets LANDING.position.
+       Increase z → closer to camera (lower in frame).  Increase x → more to the right. */
+    position: { x:  0.54, y: 0, z:  2.22 },
+    rotation: { x: -1.52, y: -0.38, z:  0.12 },
+    scale:    0.54,  /* ~20% bigger than previous 0.45 */
   },
 };
 
