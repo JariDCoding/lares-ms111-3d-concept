@@ -1631,6 +1631,7 @@ function setupScrollAnimations() {
     warmI:         FALL_LIGHTS.warmI,
     toneExp:       FALL_LIGHTS.toneExp,
     warmTint:      FALL_LIGHTS.warmTint,
+    basementBlend: 1,
     ease: 'power2.in', duration: FALL.phase3Duration,
   }, phase3Start);
 
@@ -1657,11 +1658,13 @@ function loopBoth() {
   const t  = clock.getElapsedTime();
   const cf = THREE.MathUtils.clamp(state.crossfade, 0, 1);
 
-  /* ── Canvas 1: hero bag — fully opaque before crossfade, then fades out.
-     heroAlpha is snapped to 0 at cf ≥ 0.995 to avoid lingering transparency. */
-  const heroAlpha = cf < 0.995 ? 1 - cf : 0;
-  mainBag.visible = heroAlpha > 0.01;
-  if (mainBag.visible) setObjectOpacity(mainBag, heroAlpha);
+  /* ── Canvas 1: hero bag — stays fully opaque during entire fall.
+     Hidden instantly only after crossfade completes (cf ≥ 0.995). */
+  mainBag.visible = cf < 0.995;
+  if (mainBag.visible) {
+    setObjectOpacity(mainBag, 1);
+    if (state.basementBlend > 0) applyHeroBasementBlend(mainBag, state.basementBlend);
+  }
 
   /* Animate canvas-1 hero bag */
   mainBag.position.set(
