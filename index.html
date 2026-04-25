@@ -103,10 +103,21 @@
       height: clamp(34px, 2.85vw, 41px);
       display: flex;
       align-items: center;
+      justify-content: space-between;
       padding: 0 clamp(16px, 4.5vw, 66px);
     }
 
     .header-tab-items {
+      display: flex;
+      align-items: center;
+      gap: clamp(14px, 2.8vw, 40px);
+      font-size: clamp(11px, 1.1vw, 16px);
+      font-weight: 400;
+      color: var(--white);
+      white-space: nowrap;
+    }
+
+    .header-tab-right {
       display: flex;
       align-items: center;
       gap: clamp(14px, 2.8vw, 40px);
@@ -522,29 +533,26 @@
   <!-- Dark info tab -->
   <div class="header-tab">
     <div class="header-tab-items">
-
       <span class="htab-item">
         <img class="htab-icon" src="assets/Phone.svg" alt="">
         +32 472 68 54 48
       </span>
-
       <span class="htab-item">
         <img class="htab-icon" src="assets/Envelope.svg" alt="">
         <a href="mailto:info@laressolutions.com">info@laressolutions.com</a>
       </span>
+    </div>
 
-      <!-- Language chooser — white down arrow -->
+    <div class="header-tab-right">
       <span class="htab-item htab-lang">
         <img class="htab-flag" src="assets/flag-nl.png" alt="NL">
         Nederlands
         <img class="htab-icon" src="assets/keyboard_arrow_down.svg" alt="">
       </span>
-
       <span class="htab-item">
         <img class="htab-icon" src="assets/User.svg" alt="">
         B2B Login
       </span>
-
     </div>
   </div>
 
