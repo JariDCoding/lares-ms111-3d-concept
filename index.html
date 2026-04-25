@@ -960,7 +960,7 @@ gsap.registerPlugin(ScrollTrigger);
 const USE_3D_BASEMENT      = true;   /* false → show #basement-pile-fallback img */
 const DEBUG_BASEMENT       = false;  /* true → AxesHelper + GridHelper in canvas 2 */
 const DEBUG_ALIGNMENT      = false;  /* true → log screen-space coords at transition */
-const LANDING_SCALE_CORRECTION = 0.92; /* manual multiplier; tune 0.75–1.05 if size jumps */
+const LANDING_SCALE_CORRECTION = 1.12; /* manual multiplier; tune 0.75–1.25 if size jumps */
 
 /* Canvas 1: hero bag starting pose after GLB auto-centering */
 const HERO_BAG = {
@@ -1007,7 +1007,7 @@ const BASEMENT_CAMERA = {
   near:     0.01,
   far:      100,
   position: { x: 0.0,  y: 0.95, z: 4.4 },
-  lookAt:   { x: 0.55, y: -0.18, z: 1.25 },
+  lookAt:   { x: 1.00, y: -0.18, z: 1.25 },
 };
 
 /* Canvas 2: invisible floor plane (reference only, never rendered) */
@@ -1022,21 +1022,21 @@ const BASEMENT_FLOOR = {
    TUNE ORDER: landed first (must match hero bag crossfade), then bag1/bag2. */
 const PILE = {
   bag1: {
-    position: { x:  0.44, y: 0, z:  2.00 },
+    position: { x:  1.00, y: 0, z:  2.50 },
     rotation: { x: -1.54, y: -0.30, z:  0.10 },
-    scale:    0.48,
+    scale:    0.58,
   },
   bag2: {
-    position: { x:  0.88, y: 0, z:  1.82 },
+    position: { x:  1.50, y: 0, z:  2.28 },
     rotation: { x: -1.50, y:  0.50, z: -0.12 },
-    scale:    0.45,
+    scale:    0.54,
   },
   landed: {
     /* Initial clone pose — immediately overridden by placeOnFloorFromScreenPct().
        rotation kept in sync with BASEMENT_LANDED_TARGET.rotation for reference. */
-    position: { x:  0.54, y: 0, z:  2.22 },
+    position: { x:  1.10, y: 0, z:  2.70 },
     rotation: { x: -1.56, y: -0.22, z:  0.08 },
-    scale:    0.54,
+    scale:    0.65,
   },
 };
 
@@ -1045,9 +1045,9 @@ const PILE = {
    raycasts through this point, intersects the floor plane, and places landedBag there.
    rotation MUST match LANDING.rotation below for a seamless canvas-1↔2 swap. */
 const BASEMENT_LANDED_TARGET = {
-  xPct:     0.63,
-  yPct:     0.66,
-  scale:    0.54,
+  xPct:     0.70,
+  yPct:     0.72,
+  scale:    0.65,
   rotation: { x: -1.56, y: -0.22, z: 0.08 },
 };
 
