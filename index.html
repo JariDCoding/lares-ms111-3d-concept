@@ -1413,11 +1413,7 @@ function initBasementScene(gltf) {
 
   basementBag1 = placeBag(PILE.bag1);
   basementBag2 = placeBag(PILE.bag2);
-  landedBag    = placeBag(PILE.landed);
-  /* Override position/rotation/scale using screen-percentage raycast so calibration
-     is done by specifying a canvas fraction rather than raw world coordinates. */
-  placeOnFloorFromScreenPct(landedBag, BASEMENT_LANDED_TARGET);
-  landedBag.visible = false;   /* shown only when mainBag hides at transition */
+  /* landedBag intentionally not created — hero bag simply hides at crossfade end */
 
   resizeBasementCanvas();
 }
@@ -1666,14 +1662,6 @@ function loopBoth() {
   const heroAlpha = cf < 0.995 ? 1 - cf : 0;
   mainBag.visible = heroAlpha > 0.01;
   if (mainBag.visible) setObjectOpacity(mainBag, heroAlpha);
-
-  /* ── Canvas 2: landedBag — invisible until just before transition, then fades in.
-     Static bags (bag1/bag2) are always visible once created. */
-  if (landedBag) {
-    const landedAlpha = cf > 0.005 ? cf : 0;
-    landedBag.visible = landedAlpha > 0.01;
-    if (landedBag.visible) setObjectOpacity(landedBag, landedAlpha);
-  }
 
   /* Animate canvas-1 hero bag */
   mainBag.position.set(
