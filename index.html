@@ -533,7 +533,7 @@
     .bag-contact-shadow {
       position: absolute;
       right: clamp(230px, 30vw, 500px);
-      bottom: clamp(160px, 32vh, 320px);
+      bottom: clamp(168px, 34vh, 336px);
       width: clamp(120px, 11vw, 190px);
       height: clamp(20px, 2.2vw, 38px);
       border-radius: 999px;
@@ -1018,7 +1018,7 @@ const FALL = {
   phase1Rot: { x: -0.78, y: -0.52, z:  0.06 }, /* tip forward, slight lean */
   midPos:    { x:  1.20, y: -0.18, z:  0.06 }, /* overwritten by computeFallMidPoint() */
   midRot:    { x: -1.35, y: -0.38, z:  0.08 }, /* nearly flat */
-  midScale:  0.72,
+  midScale:  0.68,
 
   ease1: 'power1.in',
   ease2: 'power1.inOut',  /* constant gravity — no mid-air hang */
@@ -1265,8 +1265,8 @@ function applyHeroBasementBlend(obj, blend) {
     const mats = Array.isArray(child.material) ? child.material : [child.material];
     mats.forEach(mat => {
       if (mat.color && mat.userData.originalColor) {
-        const target = new THREE.Color(0x5e2e0e);
-        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.78);
+        const target = new THREE.Color(0x4a2208);
+        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.88);
       }
       if (mat.roughness !== undefined) {
         const orig = mat.userData.originalRoughness ?? mat.roughness;
