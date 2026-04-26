@@ -1306,20 +1306,58 @@ function groundObjectOnFloor(bag, floorY) {
   bag.position.y += floorY - box.min.y;
 }
 
-/* Increases roughness and kills env reflections for a wet-concrete look.
-   Also ensures transparent=true so crossfade opacity works without artefacts. */
+/* Applies full basement realism pass to canvas-2 bags only.
+   Desaturates orange, adds grime tint, kills studio highlights, no opacity change. */
 function applyBasementMaterialTint(bag) {
+  const grime = new THREE.Color(0x3a2210);
   bag.traverse(child => {
-    if (child.isMesh && child.material) {
-      const mats = Array.isArray(child.material) ? child.material : [child.material];
-      mats.forEach(mat => {
-        if (mat.roughness       !== undefined) mat.roughness       = Math.min(mat.roughness + 0.18, 1.0);
-        if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 0.25;
-        mat.transparent = true;
-        mat.opacity     = 1.0;
-      });
-    }
+    if (!child.isMesh || !child.material) return;
+    const mats = Array.isArray(child.material) ? child.material : [child.material];
+    mats.forEach(mat => {
+      if (mat.color) {
+        const hsl = {};
+        mat.color.getHSL(hsl);
+        // Desaturate 40 %, darken 18 %
+        mat.color.setHSL(hsl.h, hsl.s * 0.60, hsl.l * 0.82);
+        // Subtle brownish grime layer
+        mat.color.lerp(grime, 0.18);
+      }
+      if (mat.roughness       !== undefined) mat.roughness       = Math.min(mat.roughness + 0.22, 1.0);
+      if (mat.envMapIntensity !== undefined) mat.envMapIntensity = Math.min((mat.envMapIntensity || 1) * 0.18, 0.12);
+      mat.needsUpdate = true;
+    });
   });
+}
+
+/* Adds a two-layer floor shadow under a canvas-2 bag:
+   tight contact shadow + wide soft AO halo. */
+function addContactShadow(bag) {
+  bag.updateMatrixWorld(true);
+  const box    = new THREE.Box3().setFromObject(bag);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  const size   = new THREE.Vector3();
+  box.getSize(size);
+
+  const yFloor = BASEMENT_FLOOR.y + 0.002;
+
+  // Tight dark contact shadow
+  const tight = new THREE.Mesh(
+    new THREE.PlaneGeometry(size.x * 1.05, size.z * 1.05),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false })
+  );
+  tight.rotation.x = -Math.PI / 2;
+  tight.position.set(center.x, yFloor, center.z);
+  basementScene.add(tight);
+
+  // Soft AO halo
+  const halo = new THREE.Mesh(
+    new THREE.PlaneGeometry(size.x * 2.4, size.z * 2.4),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.20, depthWrite: false })
+  );
+  halo.rotation.x = -Math.PI / 2;
+  halo.position.set(center.x, BASEMENT_FLOOR.y + 0.001, center.z);
+  basementScene.add(halo);
 }
 
 /* Projects xPct/yPct (0–1 fractions of the basement canvas) through basementCamera,
@@ -1439,7 +1477,7 @@ function initBasementScene(gltf) {
      original textures/labels; lighting alone provides the basement atmosphere. */
   function placeBag(conf) {
     const bag = gltf.scene.clone(true);
-    deepCloneMaterials(bag);           /* own material copies — opacity is independent */
+    deepCloneMaterials(bag);
     bag.scale.setScalar(heroScale * conf.scale);
     bag.rotation.set(conf.rotation.x, conf.rotation.y, conf.rotation.z);
     bag.position.set(conf.position.x, conf.position.y, conf.position.z);
@@ -1448,6 +1486,9 @@ function initBasementScene(gltf) {
     });
     basementScene.add(bag);
     groundObjectOnFloor(bag, BASEMENT_FLOOR.y);
+    bag.position.y -= 0.012; // press bottom edge into concrete — removes floating gap
+    applyBasementMaterialTint(bag);
+    addContactShadow(bag);
     return bag;
   }
 
@@ -1662,19 +1703,23 @@ function setupScrollAnimations() {
     ease: FALL.ease3, duration: FALL.phase3Duration,
   });
 
-  /* Lighting + basementBlend — starts at section entry (position 0) so colour
-     shift begins the moment the section enters the viewport. */
+  /* Lighting shifts over the full fall */
   const phase3Start = FALL.phase1Duration + FALL.phase2Duration;
   fallTL.to(state, {
-    ambientI:      FALL_LIGHTS.ambientI,
-    keyI:          FALL_LIGHTS.keyI,
-    warmI:         FALL_LIGHTS.warmI,
-    toneExp:       FALL_LIGHTS.toneExp,
-    warmTint:      FALL_LIGHTS.warmTint,
-    keyLightX:     FALL_LIGHTS.keyLightX,
-    basementBlend: 1,
+    ambientI:  FALL_LIGHTS.ambientI,
+    keyI:      FALL_LIGHTS.keyI,
+    warmI:     FALL_LIGHTS.warmI,
+    toneExp:   FALL_LIGHTS.toneExp,
+    warmTint:  FALL_LIGHTS.warmTint,
+    keyLightX: FALL_LIGHTS.keyLightX,
     ease: 'power1.inOut', duration: 0.92,
   }, 0);
+
+  /* Material adaptation: only during phase 3 — bag adapts to basement as it approaches floor */
+  fallTL.to(state, {
+    basementBlend: 1,
+    ease: 'power2.in', duration: FALL.phase3Duration,
+  }, phase3Start);
 
   /* CSS contact shadow — reveals only in phase 3 (bag approaching floor) */
   fallTL.to('.bag-contact-shadow', {
