@@ -1017,7 +1017,7 @@ const FALL = {
 
   phase1Rot: { x: -0.78, y: -0.52, z:  0.06 }, /* tip forward, slight lean */
   midPos:    { x:  1.20, y: -0.18, z:  0.06 }, /* overwritten by computeFallMidPoint() */
-  midRot:    { x: -1.35, y: -0.38, z:  0.08 }, /* nearly flat */
+  midRot:    { x: -1.10, y: -0.38, z:  0.12 }, /* mid-air tilt flowing into landing roll */
   midScale:  0.68,
 
   ease1: 'power1.in',
@@ -1033,7 +1033,7 @@ const FALL = {
    rotation MUST match BASEMENT_LANDED_TARGET.rotation so the swap is rotation-seamless. */
 const LANDING = {
   position:   { x: 1.05, y: -0.64, z:  0.10 },
-  rotation:   { x: -0.88, y: -0.42, z:  0.22 },  /* more roll: one side propped up on pile */
+  rotation:   { x: -0.80, y: -0.38, z:  0.16 },  /* resting on pile — slight roll, label visible */
   scaleRatio: 0.50,
 };
 
@@ -1116,8 +1116,8 @@ const HERO_LIGHTS = {
 /* Canvas 1: lighting targets tweened as bag falls into basement.
    Starts at 25% of fall so lighting shifts before the bag reaches the floor. */
 const FALL_LIGHTS = {
-  ambientI: 0.22, keyI: 0.55, warmI: 1.10, toneExp: 0.80, warmTint: 0.90,
-  keyLightX: -3.0,
+  ambientI: 0.28, keyI: 0.80, warmI: 1.20, toneExp: 0.84, warmTint: 0.85,
+  keyLightX: -2.0,
 };
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -1267,16 +1267,16 @@ function applyHeroBasementBlend(obj, blend) {
     const mats = Array.isArray(child.material) ? child.material : [child.material];
     mats.forEach(mat => {
       if (mat.color && mat.userData.originalColor) {
-        const target = new THREE.Color(0x4a2208);
-        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.88);
+        const target = new THREE.Color(0x6e3a15);
+        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.62);
       }
       if (mat.roughness !== undefined) {
         const orig = mat.userData.originalRoughness ?? mat.roughness;
-        mat.roughness = THREE.MathUtils.lerp(orig, 0.94, blend);
+        mat.roughness = THREE.MathUtils.lerp(orig, 0.88, blend);
       }
       if (mat.envMapIntensity !== undefined) {
         const orig = mat.userData.originalEnvMapIntensity ?? mat.envMapIntensity;
-        mat.envMapIntensity = THREE.MathUtils.lerp(orig, 0.08, blend);
+        mat.envMapIntensity = THREE.MathUtils.lerp(orig, 0.28, blend);
       }
     });
   });
@@ -1329,8 +1329,22 @@ function applyBasementMaterialTint(bag) {
   });
 }
 
-/* Adds a two-layer floor shadow under a canvas-2 bag:
-   tight contact shadow + wide soft AO halo. */
+/* Bakes a radial-gradient into a CanvasTexture so shadow planes have soft edges. */
+function makeShadowTex(innerOpacity, outerOpacity) {
+  const sz  = 256;
+  const cvs = document.createElement('canvas');
+  cvs.width = cvs.height = sz;
+  const ctx  = cvs.getContext('2d');
+  const grad = ctx.createRadialGradient(sz/2, sz/2, 0, sz/2, sz/2, sz/2);
+  grad.addColorStop(0,   `rgba(0,0,0,${innerOpacity})`);
+  grad.addColorStop(0.5, `rgba(0,0,0,${(innerOpacity + outerOpacity) * 0.5})`);
+  grad.addColorStop(1,   `rgba(0,0,0,0)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, sz, sz);
+  return new THREE.CanvasTexture(cvs);
+}
+
+/* Adds two soft shadow planes under a canvas-2 bag. */
 function addContactShadow(bag) {
   bag.updateMatrixWorld(true);
   const box    = new THREE.Box3().setFromObject(bag);
@@ -1339,24 +1353,28 @@ function addContactShadow(bag) {
   const size   = new THREE.Vector3();
   box.getSize(size);
 
-  const yFloor = BASEMENT_FLOOR.y + 0.002;
-
-  // Tight dark contact shadow
+  // Tight contact shadow with radial falloff
   const tight = new THREE.Mesh(
-    new THREE.PlaneGeometry(size.x * 1.05, size.z * 1.05),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false })
+    new THREE.PlaneGeometry(size.x * 1.3, size.z * 1.3),
+    new THREE.MeshBasicMaterial({
+      map: makeShadowTex(0.70, 0.10), transparent: true, depthWrite: false,
+    })
   );
   tight.rotation.x = -Math.PI / 2;
-  tight.position.set(center.x, yFloor, center.z);
+  tight.position.set(center.x, BASEMENT_FLOOR.y + 0.003, center.z);
+  tight.renderOrder = 1;
   basementScene.add(tight);
 
-  // Soft AO halo
+  // Wide soft AO halo
   const halo = new THREE.Mesh(
-    new THREE.PlaneGeometry(size.x * 2.4, size.z * 2.4),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.20, depthWrite: false })
+    new THREE.PlaneGeometry(size.x * 3.2, size.z * 3.2),
+    new THREE.MeshBasicMaterial({
+      map: makeShadowTex(0.28, 0.0), transparent: true, depthWrite: false,
+    })
   );
   halo.rotation.x = -Math.PI / 2;
-  halo.position.set(center.x, BASEMENT_FLOOR.y + 0.001, center.z);
+  halo.position.set(center.x, BASEMENT_FLOOR.y + 0.002, center.z);
+  halo.renderOrder = 0;
   basementScene.add(halo);
 }
 
