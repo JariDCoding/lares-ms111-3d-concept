@@ -669,20 +669,18 @@
     .kelder-cta {
       display: inline-block;
       margin-top: 24px;
-      padding: clamp(9px, 0.8vw, 13px) clamp(18px, 1.8vw, 28px);
-      background: var(--orange);
-      color: var(--white);
+      color: var(--orange);
       font-family: 'Karla', sans-serif;
       font-size: clamp(13px, 1.05vw, 16px);
       font-weight: 600;
-      text-decoration: none;
-      border-radius: 6px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
       letter-spacing: 0.03em;
-      transition: background 0.18s ease, transform 0.12s ease;
+      transition: color 0.18s ease;
     }
 
-    .kelder-cta:hover  { background: var(--orange-dk); transform: translateY(-1px); }
-    .kelder-cta:active { transform: translateY(0); }
+    .kelder-cta:hover  { color: var(--orange-dk); }
+    .kelder-cta:active { color: var(--orange-dk); }
 
     /* ═══════════════════════════════════════════
        BREAKPOINTS
@@ -929,8 +927,8 @@
   <div class="kelder-text">
     <span class="kelder-count">01 / 04</span>
     <h2 class="kelder-title">Kelderdichting</h2>
-    <p class="kelder-desc">Bescherm uw kelder tegen vocht, opstijgend water en condensatie. Permanent en bewezen effectief.</p>
-    <a href="#" class="kelder-cta">Vraag offerte aan &rsaquo;</a>
+    <p class="kelder-desc">Kwalitatieve systemen voor het waterdicht maken van kelders tegen grondvocht en drukkend water. Van coatings en mortels tot zelfnivellerende vloeroplossingen.</p>
+    <a href="#" class="kelder-cta">Bekijk kelderdichting oplossingen →</a>
   </div>
   <div class="bag-contact-shadow"></div>
 </section>
