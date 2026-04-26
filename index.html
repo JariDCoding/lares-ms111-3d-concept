@@ -532,8 +532,8 @@
     /* CSS contact shadow — supporting layer under pile; fades in as bag lands */
     .bag-contact-shadow {
       position: absolute;
-      right: clamp(230px, 30vw, 500px);
-      bottom: clamp(168px, 34vh, 336px);
+      right: clamp(210px, 27vw, 460px);
+      bottom: clamp(178px, 36vh, 350px);
       width: clamp(120px, 11vw, 190px);
       height: clamp(20px, 2.2vw, 38px);
       border-radius: 999px;
@@ -1017,7 +1017,7 @@ const FALL = {
 
   phase1Rot: { x: -0.78, y: -0.52, z:  0.06 }, /* tip forward, slight lean */
   midPos:    { x:  1.20, y: -0.18, z:  0.06 }, /* overwritten by computeFallMidPoint() */
-  midRot:    { x: -1.10, y: -0.38, z:  0.12 }, /* mid-air tilt flowing into landing roll */
+  midRot:    { x: -1.10, y: -0.10, z:  0.12 }, /* mid-air — y rotates toward landing front-face */
   midScale:  0.68,
 
   ease1: 'power1.in',
@@ -1033,7 +1033,7 @@ const FALL = {
    rotation MUST match BASEMENT_LANDED_TARGET.rotation so the swap is rotation-seamless. */
 const LANDING = {
   position:   { x: 1.05, y: -0.64, z:  0.10 },
-  rotation:   { x: -0.80, y: -0.38, z:  0.16 },  /* resting on pile — slight roll, label visible */
+  rotation:   { x: -0.80, y:  0.10, z:  0.16 },  /* front faces right — MS111 label toward viewer */
   scaleRatio: 0.50,
 };
 
