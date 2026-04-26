@@ -532,7 +532,7 @@
     /* CSS contact shadow — supporting layer under pile; fades in as bag lands */
     .bag-contact-shadow {
       position: absolute;
-      right: clamp(210px, 27vw, 460px);
+      right: clamp(230px, 29vw, 490px);
       bottom: clamp(178px, 36vh, 350px);
       width: clamp(120px, 11vw, 190px);
       height: clamp(20px, 2.2vw, 38px);
@@ -1267,8 +1267,8 @@ function applyHeroBasementBlend(obj, blend) {
     const mats = Array.isArray(child.material) ? child.material : [child.material];
     mats.forEach(mat => {
       if (mat.color && mat.userData.originalColor) {
-        const target = new THREE.Color(0x6e3a15);
-        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.62);
+        const target = new THREE.Color(0x5c3010);
+        mat.color.copy(mat.userData.originalColor).lerp(target, blend * 0.70);
       }
       if (mat.roughness !== undefined) {
         const orig = mat.userData.originalRoughness ?? mat.roughness;
@@ -1276,7 +1276,7 @@ function applyHeroBasementBlend(obj, blend) {
       }
       if (mat.envMapIntensity !== undefined) {
         const orig = mat.userData.originalEnvMapIntensity ?? mat.envMapIntensity;
-        mat.envMapIntensity = THREE.MathUtils.lerp(orig, 0.28, blend);
+        mat.envMapIntensity = THREE.MathUtils.lerp(orig, 0.18, blend);
       }
     });
   });
