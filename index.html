@@ -596,7 +596,7 @@
       overflow: hidden;
       background-image: url('assets/basement.png');
       background-size: cover;
-      background-position: center 80%;
+      background-position: center 60%;
     }
 
     /* Left dark gradient — makes text readable over the photo */
@@ -613,16 +613,16 @@
       z-index: 1;
     }
 
-    /* Top fade — white blends smoothly into the basement photo */
+    /* Bottom crop — fades the basement photo out at the foot */
     .kelder-section::after {
       content: '';
       position: absolute;
-      top: 0;
+      bottom: 0;
       left: 0;
       right: 0;
-      height: clamp(80px, 14vw, 220px);
+      height: clamp(70px, 13vw, 200px);
       background: linear-gradient(
-        to bottom,
+        to top,
         rgba(255,255,255,1) 0%,
         rgba(255,255,255,0) 100%
       );
@@ -633,7 +633,7 @@
     .kelder-text {
       position: absolute;
       left: clamp(32px, 14vw, 200px);
-      top: 50%;
+      top: 38%;
       transform: translateY(-50%);
       z-index: 5;
     }
@@ -655,6 +655,34 @@
       color: var(--white);
       line-height: 1.08;
     }
+
+    .kelder-desc {
+      font-family: 'Karla', sans-serif;
+      font-size: clamp(14px, 1.15vw, 18px);
+      font-weight: 400;
+      color: rgba(255,255,255,0.78);
+      margin-top: 14px;
+      max-width: clamp(220px, 26vw, 380px);
+      line-height: 1.6;
+    }
+
+    .kelder-cta {
+      display: inline-block;
+      margin-top: 24px;
+      padding: clamp(9px, 0.8vw, 13px) clamp(18px, 1.8vw, 28px);
+      background: var(--orange);
+      color: var(--white);
+      font-family: 'Karla', sans-serif;
+      font-size: clamp(13px, 1.05vw, 16px);
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 6px;
+      letter-spacing: 0.03em;
+      transition: background 0.18s ease, transform 0.12s ease;
+    }
+
+    .kelder-cta:hover  { background: var(--orange-dk); transform: translateY(-1px); }
+    .kelder-cta:active { transform: translateY(0); }
 
     /* ═══════════════════════════════════════════
        BREAKPOINTS
@@ -901,6 +929,8 @@
   <div class="kelder-text">
     <span class="kelder-count">01 / 04</span>
     <h2 class="kelder-title">Kelderdichting</h2>
+    <p class="kelder-desc">Bescherm uw kelder tegen vocht, opstijgend water en condensatie. Permanent en bewezen effectief.</p>
+    <a href="#" class="kelder-cta">Vraag offerte aan &rsaquo;</a>
   </div>
   <div class="bag-contact-shadow"></div>
 </section>
