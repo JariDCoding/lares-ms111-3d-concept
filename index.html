@@ -532,8 +532,8 @@
     /* CSS contact shadow — supporting layer under pile; fades in as bag lands */
     .bag-contact-shadow {
       position: absolute;
-      right: clamp(250px, 31vw, 515px);
-      bottom: clamp(188px, 37vh, 365px);
+      right: clamp(270px, 33vw, 545px);
+      bottom: clamp(210px, 43vh, 410px);
       width: clamp(120px, 11vw, 190px);
       height: clamp(20px, 2.2vw, 38px);
       border-radius: 999px;
@@ -1003,7 +1003,7 @@ const LANDING_SCALE_CORRECTION = 1.12; /* manual multiplier; tune 0.75–1.25 if
 /* Canvas 1: hero bag starting pose after GLB auto-centering */
 const HERO_BAG = {
   offsetX:   1.30,
-  offsetY:  -0.72,  /* 10% lower than before (was -0.40; ~0.32 world units ≈ 10% viewport height) */
+  offsetY:   0.38,  /* starts above centre so fall path is continuously downward */
   rotation: { x: 0.08, y: -0.55, z: -0.13 },
 };
 
@@ -1021,12 +1021,12 @@ const FALL = {
   midScale:  0.68,
 
   ease1: 'power1.in',
-  ease2: 'power1.inOut',  /* constant gravity — no mid-air hang */
+  ease2: 'power2.in',     /* accelerates like gravity through mid-air */
   ease3: 'power2.out',
 
   scrollStart: 'top bottom',
   scrollEnd:   '35% center',
-  scrub:       1.5,
+  scrub:       1.1,
 };
 
 /* Canvas 1: final landing pose — position.x/y + scaleRatio are AUTO-COMPUTED.
@@ -1286,9 +1286,10 @@ function applyHeroBasementBlend(obj, blend) {
    Call AFTER computeLandingFromPile/Scale. Prevents hardcoded midPos from causing
    a visible depth or position jump mid-animation. */
 function computeFallMidPoint() {
-  FALL.midPos.x = THREE.MathUtils.lerp(HERO_BAG.offsetX, LANDING.position.x, 0.55);
-  FALL.midPos.y = Math.max(LANDING.position.y + 0.62, -0.12);
-  FALL.midPos.z = THREE.MathUtils.lerp(0.0, LANDING.position.z, 0.55);
+  /* Always interpolate between actual start and landing — guarantees no direction reversal */
+  FALL.midPos.x = THREE.MathUtils.lerp(state.posX, LANDING.position.x, 0.50);
+  FALL.midPos.y = THREE.MathUtils.lerp(state.posY, LANDING.position.y, 0.42);
+  FALL.midPos.z = THREE.MathUtils.lerp(state.posZ, LANDING.position.z, 0.50);
 }
 
 /* Returns screen-space {x,y,z} of an object — used by DEBUG_ALIGNMENT. */
